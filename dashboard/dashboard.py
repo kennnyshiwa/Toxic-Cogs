@@ -53,14 +53,6 @@ class Dashboard(commands.Cog):
 		asyncio.set_event_loop(self.bot.loop)
 		"""
 
-	def __unload(self):
-		self.bot.loop.create_task(self.web.runner.cleanup())
-		return
-		new_loop = asyncio.new_event_loop()
-		asyncio.set_event_loop(new_loop)
-		self.app.app.stop()
-		asyncio.set_event_loop(self.bot.loop)
-
 	@commands.group()
 	async def dashboard(self, ctx):
 		"""Group command for controlling the web dashboard for Red"""
