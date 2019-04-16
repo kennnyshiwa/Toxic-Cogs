@@ -7,6 +7,9 @@ from aiohttp import web
 from .webserver import WebServer
 
 class Dashboard(commands.Cog):
+
+	__version__ = "0.0.1a"
+
 	def __init__(self, bot):
 		self.bot = bot
 		self.conf = Config.get_conf(self, identifier=473541068378341376)
