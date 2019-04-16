@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Red - Discord Bot Dashboard</title>
+        <style>
+            .main {
+                border-radius: 25px;
+                border: 2px solid black;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                -moz-transform: translateX(-50%) translateY(-50%);
+                -webkit-transform: translateX(-50%) translateY(-50%);
+                transform: translateX(-50%) translateY(-50%);
+                text-align: center;
+            }
+            h1 {
+                padding-right: 10px;
+                padding-left: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="main">
+            <h1>Enter the cog name below</h1>
+            <input id="cog">
+            <br />
+            <button id="button">Load cog</button>
+            <br /><br />
+            <p><span id="response">Response: 0 (nothing loaded yet)</span><br /><span id="message">Message: (nothing loaded yet)</span></p>
+        </div>
+        <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
+        <script>
+            $("#button").click(function (event) {
+                var xhr = new XMLHttpRequest();
+                var url = "http://localhost:42356/cogs/core/load/action";
+                xhr.open("POST", url, true);
+                xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState !== 4) { return }
+                    /*
+                    if (xhr.status === 409) {
+                        console.log("409")
+                        return
+                    }
+                    */
+                    var json = JSON.parse(xhr.responseText);
+                    $("#response").text("Response: " + json.code)
+                    $("#message").text("Message: " + json.message)
+                    console.log(typeof json);
+                };
+                var data = JSON.stringify({"cog": $("#cog").val()});
+                try {
+                    xhr.send(data);
+                } catch(error) {
+                    //console.log(error)
+                }
+            })
+        </script>
+    </body>
+</html>

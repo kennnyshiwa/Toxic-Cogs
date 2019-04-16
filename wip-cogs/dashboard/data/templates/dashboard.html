@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Red - Discord Bot Dashboard: Main</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+        <script src="jquery-3.3.1.min.js"></script>
+        <style>
+            .contains {
+                border: 2px solid grey;
+                border-radius: 25px;
+                text-align: center;
+            }
+            .spacer {
+                height: 50px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-3"></div>
+                <div class="col-lg-6 contains">
+                    <h1>Red - Discord Bot Dashboard</h1>
+                </div>
+                <div class="col-lg-3"></div>
+            </div>
+            <div class="spacer"></div>
+            <div class="row">
+                <div class="col-lg-4 contains">
+                    <h2 id="admin"><a href="http://localhost:42356/cogs/admin">Admin</a></h2>
+                    <p>Configure/call the following:</p>
+                    <ul>
+                        <li>Send announcement</li>
+                        <li>Serverlock the bot</li>
+                    </ul>
+                </div>
+                <div class="col-lg-4 contains">
+                    <h2 id="mod"><a href="http://localhost:42356/cogs/mod">Mod</a></h2>
+                    <p>Configure/call the following:</p>
+                    <ul>
+                        <li>Add servers to the ignore list</li>
+                        <li>Remove servers from the ignore list</li>
+                    </ul>
+                </div>
+                <div class="col-lg-4 contains">
+                    <h2 id="downloader"><a href="http://localhost:42356/cogs/downloader">Downloader</a></h2>
+                    <p>Configure/call the following:</p>
+                    <ul>
+                        <li>Install a cog from a repository</li>
+                        <li>Uninstall a cog from a repository</li>
+                        <li>Pip install a library</li>
+                        <li>Add a repository to your bot</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-4 contains">
+                    <h2 id="core"><a href="http://localhost:42356/cogs/core">Core</a></h2>
+                    <p>Configure/call the following:</p>
+                    <ul>
+                        <li>Load a cog (working)</li>
+                        <li>Unload a cog (working)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    <script type="text/javascript">
+    </script>
+    </body>
+</html>
