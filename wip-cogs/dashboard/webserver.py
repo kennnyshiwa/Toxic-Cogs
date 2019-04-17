@@ -3,6 +3,8 @@ import aiohttp
 import asyncio
 
 from .data.cogs.core import load_cog, unload_cog
+from .data.cogs.cogmanager import get_cogs
+
 from .data.cogs.exceptions import LoadedError, LocationError, LoadingError, NotLoadedError
 
 class WebServer:
@@ -124,8 +126,34 @@ class WebServer:
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    async def cogs_core_reload(self, request):
+        current_path = self.path / "templates/cog_pages/core/reload.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
     async def cogs_core(self, request):
         current_path = self.path / "templates/cog_pages/core.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
+    async def cogs_cogmanager_cogs_action(self, request):
+        loaded, unloaded = await get_cogs(self.bot)
+        data = {
+            "l": loaded,
+            "u": unloaded
+        }
+        return web.json_response(data)
+
+    async def cogs_cogmanager_cogs(self, request):
+        current_path = self.path / "templates/cog_pages/cogmanager/cogs.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
+    async def cogs_cogmanager(self, request):
+        current_path = self.path / "templates/cog_pages/cogmanager.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
@@ -138,10 +166,14 @@ class WebServer:
         self.app.router.add_get("/cogs", self.cogs)
         self.app.router.add_get("/cogs/core", self.cogs_core)
         self.app.router.add_get("/cogs/admin", self.cogs_admin)
+        self.app.router.add_get("/cogs/cogmanager", self.cogs_cogmanager)
+        self.app.router.add_get("/cogs/cogmanager/cogs", self.cogs_cogmanager_cogs)
+        self.app.router.add_get("/cogs/cogmanager/cogs/action", self.cogs_cogmanager_cogs_action)
         self.app.router.add_get("/cogs/core/load", self.cogs_core_load)
         self.app.router.add_post("/cogs/core/load/action", self.cogs_core_load_action)
         self.app.router.add_get("/cogs/core/unload", self.cogs_core_unload)
         self.app.router.add_post("/cogs/core/unload/action", self.cogs_core_unload_action)
+        self.app.router.add_get("/cogs/core/reload", self.cogs_core_reload)
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
         self.handler = self.app.make_handler(debug=True)

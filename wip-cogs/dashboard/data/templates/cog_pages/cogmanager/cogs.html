@@ -55,46 +55,34 @@
             <a href="http://localhost:42356/cogs/cogmanager">Cog Manager UI</a>
         </div>
         <div class="main">
-            <h1>Enter the cog name below</h1>
-            <input id="cog">
-            <br />
-            <button id="button">Unload cog</button>
-            <br /><br />
-            <p><span id="response">Response: 0 (nothing unloaded yet)</span><br /><span id="message">Message: (nothing unloaded yet)</span></p>
+            <h1 id="loading">Loading...</h1>
+            <p id="loaded"></p>
+            <p id="unloaded"></p>
         </div>
         <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
         <script>
-            $("#button").click(function (event) {
-                var xhr = new XMLHttpRequest();
-                var url = "http://localhost:42356/cogs/core/unload/action";
-                xhr.open("POST", url, true);
-                xhr.setRequestHeader("Content-Type", "application/json");
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState !== 4) { return }
-                    /*
-                    if (xhr.status === 409) {
-                        console.log("409")
-                        return
-                    }
-                    */
-                    var json = JSON.parse(xhr.responseText);
-                    $("#response").text("Response: " + json.code)
-                    $("#message").text("Message: " + json.message)
-                };
-                var data = JSON.stringify({"cog": $("#cog").val()});
-                try {
-                    xhr.send(data);
-                } catch(error) {
-                    //console.log(error)
+            var xhr = new XMLHttpRequest();
+            var url = "http://localhost:42356/cogs/cogmanager/cogs/action";
+            xhr.open("GET", url, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState !== 4) { return }
+                /*
+                if (xhr.status === 409) {
+                    console.log("409")
+                    return
                 }
-            })
-            $(document).ready(function(){
-                $('#cog').keypress(function(e) {
-                    if(e.keyCode==13) {
-                        $('#button').click();
-                    }
-                });
-            });
+                */
+                var json = JSON.parse(xhr.responseText);
+                $("#loaded").text("Loaded: " + json.l.join(", "))
+                $("#unloaded").text("Unloaded: " + json.u.join(", "))
+                $("#loading").text("Finished loading")
+            };
+            try {
+                xhr.send()
+            } catch(error) {
+                //console.log(error)
+            }
         </script>
     </body>
 </html>

@@ -35,7 +35,7 @@ class Dashboard(commands.Cog):
 	@settings.command()
 	async def setup(self, ctx):
 		"""Basic set up the web server for this Red bot"""
-		return await ctx.send("This command isnt supposed to be here.")
+		return await ctx.send("This command isnt supposed to be here.  LOLZ")
 		await ctx.send("DMing you to set up the web dashboard...")
 		try:
 			await ctx.author.send("Please input the username required to log into the web dashboard.")
