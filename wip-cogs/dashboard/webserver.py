@@ -1,15 +1,21 @@
 from aiohttp import web
 import aiohttp
 import asyncio
+import random
 
 from .data.cogs.core import load_cog, unload_cog
-from .data.cogs.cogmanager import get_cogs
+from .data.cogs.admin import announce
+from .data.cogs.cogmanager import get_cogs, get_paths, add_path
 
 from .data.cogs.exceptions import LoadedError, LocationError, LoadingError, NotLoadedError
 
+memes = {
+    "404": ["http://www.quickmeme.com/img/13/139e1e24e4563e65a4684885c035192402ae72fb05b5e42ad84509ef2137e212.jpg", "https://i.imgflip.com/11fjj7.jpg", "https://i.imgflip.com/gegi9.jpg", "http://www.quickmeme.com/img/84/84971a2e41c1d0ab5d45d1118f49e1f847f11f2d144f58873b4b6794e9164f5f.jpg", "https://i.pinimg.com/originals/84/03/d1/8403d12561c6ab7fd0bba3d9ecf9690f.jpg", "https://i.chzbgr.com/full/3745326080/h802C29B4/"]
+}
+
 class WebServer:
     def __init__(self, bot, cog):
-        self.app = web.Application()
+        self.app = web.Application(middlewares=[self.error_middleware])
         self.bot = bot
         self.port = 42356
         self.handler = None
@@ -39,12 +45,6 @@ class WebServer:
     
     async def cogs(self, request):
         return aiohttp.web.HTTPFound('http://localhost:42356/dashboard')
-
-    async def cogs_admin(self, request):
-        current_path = self.path / "templates/cog_pages/admin.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
 
     async def cogs_core_unload_action(self, request):
         if request.method != "POST":
@@ -152,8 +152,94 @@ class WebServer:
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    async def cogs_cogmanager_paths_action(self, request):
+        install, core, cogs = await get_paths(self.bot)
+        data = {
+            "i": install,
+            "core": core,
+            "cogs": cogs
+        }
+        return web.json_response(data)
+
+    async def cogs_cogmanager_paths(self, request):
+        current_path = self.path / "templates/cog_pages/cogmanager/paths.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
+    async def cogs_cogmanager_add_path_action(self, request):
+        path = await request.json()
+        path = path['path']
+        try:
+            await add_path(self.bot, path)
+        except ValueError:
+            data = {
+                "code": 400
+            }
+        else:
+            data = {
+                "code": 200
+            }
+        return web.json_response(data)
+
+    async def cogs_cogmanager_add_path(self, request):
+        current_path = self.path / "templates/cog_pages/cogmanager/add_path.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
     async def cogs_cogmanager(self, request):
         current_path = self.path / "templates/cog_pages/cogmanager.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
+    async def cogs_admin_announce_action(self, request):
+        message = await request.json()
+        message = message["m"]
+        try:
+            success = await announce(self.bot, message)
+        except NotLoadedError:
+            data = {
+                "success": False,
+                "loaded": False
+            }
+        else:
+            if success:
+                data = {
+                    "success": True
+                }
+            else:
+                data = {
+                    "success": False,
+                    "loaded": True
+                }
+        return web.json_response(data)
+
+    async def cogs_admin_announce(self, request):
+        current_path = self.path / "templates/cog_pages/admin/announce.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
+    async def cogs_admin(self, request):
+        current_path = self.path / "templates/cog_pages/admin.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
+    @web.middleware
+    async def error_middleware(self, request, handler):
+        try:
+            response = await handler(request)
+            if response.status != 404:
+                return response
+            message = response.message
+        except web.HTTPException as ex:
+            if ex.status != 404:
+                raise
+            message = ex.reason
+        current_path = self.path / "templates/404.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
@@ -166,9 +252,15 @@ class WebServer:
         self.app.router.add_get("/cogs", self.cogs)
         self.app.router.add_get("/cogs/core", self.cogs_core)
         self.app.router.add_get("/cogs/admin", self.cogs_admin)
+        self.app.router.add_get("/cogs/admin/announce", self.cogs_admin_announce)
+        self.app.router.add_post("/cogs/admin/announce/action", self.cogs_admin_announce_action)
         self.app.router.add_get("/cogs/cogmanager", self.cogs_cogmanager)
         self.app.router.add_get("/cogs/cogmanager/cogs", self.cogs_cogmanager_cogs)
         self.app.router.add_get("/cogs/cogmanager/cogs/action", self.cogs_cogmanager_cogs_action)
+        self.app.router.add_get("/cogs/cogmanager/paths", self.cogs_cogmanager_paths)
+        self.app.router.add_get("/cogs/cogmanager/paths/action", self.cogs_cogmanager_paths_action)
+        self.app.router.add_get("/cogs/cogmanager/addpath", self.cogs_cogmanager_add_path)
+        self.app.router.add_post("/cogs/cogmanager/addpath/action", self.cogs_cogmanager_add_path_action)
         self.app.router.add_get("/cogs/core/load", self.cogs_core_load)
         self.app.router.add_post("/cogs/core/load/action", self.cogs_core_load_action)
         self.app.router.add_get("/cogs/core/unload", self.cogs_core_unload)

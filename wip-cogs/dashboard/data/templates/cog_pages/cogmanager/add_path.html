@@ -143,18 +143,18 @@
             </div>
         </div>
         <div class="main">
-            <h1>Enter the cog name below</h1>
-            <input id="cog">
+            <h1>Enter the path below</h1>
+            <input id="path">
             <br />
-            <button id="button">Load cog</button>
+            <button id="button">Add path</button>
             <br /><br />
-            <p><span id="response">Response: 0 (nothing loaded yet)</span><br /><span id="message">Message: (nothing loaded yet)</span></p>
+            <p><span id="response">Response: 0 (nothing loaded yet)</span></p>
         </div>
         <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
         <script>
             $("#button").click(function (event) {
                 var xhr = new XMLHttpRequest();
-                var url = "http://localhost:42356/cogs/core/load/action";
+                var url = "http://localhost:42356/cogs/cogmanager/addpath/action";
                 xhr.open("POST", url, true);
                 xhr.setRequestHeader("Content-Type", "application/json");
                 xhr.onreadystatechange = function () {
@@ -167,9 +167,8 @@
                     */
                     var json = JSON.parse(xhr.responseText);
                     $("#response").text("Response: " + json.code)
-                    $("#message").text("Message: " + json.message)
                 };
-                var data = JSON.stringify({"cog": $("#cog").val()});
+                var data = JSON.stringify({"path": $("#path").val()});
                 try {
                     xhr.send(data);
                 } catch(error) {

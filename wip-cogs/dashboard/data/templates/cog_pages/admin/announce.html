@@ -25,6 +25,11 @@
                 padding-right: 10px;
                 padding-left: 10px;
             }
+            #message {
+                border: 2px solid black;
+                margin-right: 10px;
+                margin-left: 10px;
+            }
             .navbar {
                 overflow: hidden;
                 background-color: #333;
@@ -143,18 +148,18 @@
             </div>
         </div>
         <div class="main">
-            <h1>Enter the cog name below</h1>
-            <input id="cog">
+            <h1>Enter the message below</h1>
+            <textarea id="message" maxlength=2000 cols=100 rows=10 wrap="hard"></textarea>
             <br />
-            <button id="button">Load cog</button>
+            <button id="button">Announce</button>
             <br /><br />
-            <p><span id="response">Response: 0 (nothing loaded yet)</span><br /><span id="message">Message: (nothing loaded yet)</span></p>
+            <p><span id="response">Response: (nothing announced yet)</span></p>
         </div>
         <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
         <script>
             $("#button").click(function (event) {
                 var xhr = new XMLHttpRequest();
-                var url = "http://localhost:42356/cogs/core/load/action";
+                var url = "http://localhost:42356/cogs/admin/announce/action";
                 xhr.open("POST", url, true);
                 xhr.setRequestHeader("Content-Type", "application/json");
                 xhr.onreadystatechange = function () {
@@ -166,10 +171,18 @@
                     }
                     */
                     var json = JSON.parse(xhr.responseText);
-                    $("#response").text("Response: " + json.code)
-                    $("#message").text("Message: " + json.message)
+                    if (json.success) {
+                        string = "Broadcasted announcement"
+                    } else {
+                        if (!json.loaded) {
+                            string = "Admin cog not loaded."
+                        } else {
+                            string = "Failed to broadcast announcement.  Is there already one running?"
+                        }
+                    }
+                    $("#response").text("Response: " + string)
                 };
-                var data = JSON.stringify({"cog": $("#cog").val()});
+                var data = JSON.stringify({"m": $("#message").val()});
                 try {
                     xhr.send(data);
                 } catch(error) {
