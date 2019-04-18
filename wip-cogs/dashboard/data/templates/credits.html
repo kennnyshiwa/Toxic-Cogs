@@ -10,18 +10,9 @@
                 font-family: sans-serif;
             }
             .main {
-                border-radius: 25px;
-                border: 2px solid black;
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                -moz-transform: translateX(-50%) translateY(-50%);
-                -webkit-transform: translateX(-50%) translateY(-50%);
-                transform: translateX(-50%) translateY(-50%);
-                text-align: center;
-                margin-top: 30px;
+                margin-top: 50px;
             }
-            h1 {
+            h1, p {
                 padding-right: 10px;
                 padding-left: 10px;
             }
@@ -141,50 +132,15 @@
                     <li><a href="http://localhost:42356/cogs/admin/serverlock">Serverlock</a></li>
                 </ul>
             </div>
-            </div>
         </div>
         <div class="main">
-            <h1>Enter the cog name below</h1>
-            <input id="cog">
-            <br />
-            <button id="button">Unload cog</button>
-            <br /><br />
-            <p><span id="response">Response: 0 (nothing unloaded yet)</span><br /><span id="message">Message: (nothing unloaded yet)</span></p>
+            <h1>Credits</h1>
+            <p>The following are not my own, and instead I have borrowed from another source:</p>
+            <ul>
+                <li>Image on the <a href="http://localhost:42356/">landing page</a>; this belongs to Red, and the Cog Creators.</li>
+                <li>The favicon for the dashboard pages, this also belongs to Red.  It is the Discord guild icon.</li>
+            </ul>
         </div>
-        <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
-        <script>
-            $("#button").click(function (event) {
-                var xhr = new XMLHttpRequest();
-                var url = "http://localhost:42356/cogs/core/unload/action";
-                xhr.open("POST", url, true);
-                xhr.setRequestHeader("Content-Type", "application/json");
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState !== 4) { return }
-                    /*
-                    if (xhr.status === 409) {
-                        console.log("409")
-                        return
-                    }
-                    */
-                    var json = JSON.parse(xhr.responseText);
-                    $("#response").text("Response: " + json.code)
-                    $("#message").text("Message: " + json.message)
-                };
-                var data = JSON.stringify({"cog": $("#cog").val()});
-                try {
-                    xhr.send(data);
-                } catch(error) {
-                    //console.log(error)
-                }
-            })
-            $(document).ready(function(){
-                $('#cog').keypress(function(e) {
-                    if(e.keyCode==13) {
-                        $('#button').click();
-                    }
-                });
-            });
-        </script>
         <script>
             /* Open when someone clicks on the span element */
             function openNav() {

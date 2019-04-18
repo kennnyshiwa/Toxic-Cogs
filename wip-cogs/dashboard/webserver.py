@@ -4,7 +4,7 @@ import asyncio
 import random
 
 from .data.cogs.core import load_cog, unload_cog
-from .data.cogs.admin import announce
+from .data.cogs.admin import announce, serverlock
 from .data.cogs.cogmanager import get_cogs, get_paths, add_path
 
 from .data.cogs.exceptions import LoadedError, LocationError, LoadingError, NotLoadedError
@@ -222,8 +222,50 @@ class WebServer:
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    async def cogs_admin_serverlock_action(self, request):
+        try:
+            locked = await serverlock(self.bot)
+        except NotLoadedError:
+            data = {
+                "success": False,
+                "loaded": False,
+                "locked": False
+            }
+        except:
+            data = {
+                "success": False,
+                "loaded": True,
+                "locked": False
+            }
+        else:
+            if locked:
+                data = {
+                    "success": True,
+                    "locked": True,
+                    "loaded": True
+                }
+            else:
+                data = {
+                    "success": True,
+                    "locked": False,
+                    "loaded": True
+                }
+        return web.json_response(data)
+
+    async def cogs_admin_serverlock(self, request):
+        current_path = self.path / "templates/cog_pages/admin/serverlock.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
     async def cogs_admin(self, request):
         current_path = self.path / "templates/cog_pages/admin.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
+    async def _credits(self, request):
+        current_path = self.path / "templates/credits.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
@@ -249,11 +291,14 @@ class WebServer:
         await asyncio.sleep(3)
         self.app.router.add_get("/", self.home)
         self.app.router.add_get("/dashboard", self.dashboard)
+        self.app.router.add_get("/credits", self._credits)
         self.app.router.add_get("/cogs", self.cogs)
         self.app.router.add_get("/cogs/core", self.cogs_core)
         self.app.router.add_get("/cogs/admin", self.cogs_admin)
         self.app.router.add_get("/cogs/admin/announce", self.cogs_admin_announce)
         self.app.router.add_post("/cogs/admin/announce/action", self.cogs_admin_announce_action)
+        self.app.router.add_get("/cogs/admin/serverlock", self.cogs_admin_serverlock)
+        self.app.router.add_post("/cogs/admin/serverlock/action", self.cogs_admin_serverlock_action)
         self.app.router.add_get("/cogs/cogmanager", self.cogs_cogmanager)
         self.app.router.add_get("/cogs/cogmanager/cogs", self.cogs_cogmanager_cogs)
         self.app.router.add_get("/cogs/cogmanager/cogs/action", self.cogs_cogmanager_cogs_action)

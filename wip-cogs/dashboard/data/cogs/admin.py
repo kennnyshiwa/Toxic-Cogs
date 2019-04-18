@@ -18,3 +18,11 @@ async def announce(bot, message):
         return True
     else:
         return False
+
+async def serverlock(bot):
+    cog = bot.get_cog("Admin")
+    if not cog:
+        raise NotLoadedError("Admin cog must be loaded.")
+    serverlocked = await cog.conf.serverlocked()
+    await cog.conf.serverlocked.set(not serverlocked)
+    return not serverlocked

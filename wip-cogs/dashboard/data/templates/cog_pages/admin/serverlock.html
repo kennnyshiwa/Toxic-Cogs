@@ -25,6 +25,11 @@
                 padding-right: 10px;
                 padding-left: 10px;
             }
+            #message {
+                border: 2px solid black;
+                margin-right: 10px;
+                margin-left: 10px;
+            }
             .navbar {
                 overflow: hidden;
                 background-color: #333;
@@ -144,18 +149,16 @@
             </div>
         </div>
         <div class="main">
-            <h1>Enter the cog name below</h1>
-            <input id="cog">
-            <br />
-            <button id="button">Unload cog</button>
+            <h1>Serverlock the bot</h1>
+            <button id="button">Toggle the serverlock</button>
             <br /><br />
-            <p><span id="response">Response: 0 (nothing unloaded yet)</span><br /><span id="message">Message: (nothing unloaded yet)</span></p>
+            <p><span id="response">Response: (nothing announced yet)</span></p>
         </div>
         <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
         <script>
             $("#button").click(function (event) {
                 var xhr = new XMLHttpRequest();
-                var url = "http://localhost:42356/cogs/core/unload/action";
+                var url = "http://localhost:42356/cogs/admin/serverlock/action";
                 xhr.open("POST", url, true);
                 xhr.setRequestHeader("Content-Type", "application/json");
                 xhr.onreadystatechange = function () {
@@ -167,12 +170,23 @@
                     }
                     */
                     var json = JSON.parse(xhr.responseText);
-                    $("#response").text("Response: " + json.code)
-                    $("#message").text("Message: " + json.message)
+                    if (json.success) {
+                        if (json.locked) {
+                            string = "The bot is now serverlocked"
+                        } else {
+                            string = "The bot is no longer serverlocked"
+                        }
+                    } else {
+                        if (json.loaded) {
+                            string = "Failed to serverlock bot."
+                        } else {
+                            string = "The admin cog must be loaded."
+                        }
+                    }
+                    $("#response").text("Response: " + string)
                 };
-                var data = JSON.stringify({"cog": $("#cog").val()});
                 try {
-                    xhr.send(data);
+                    xhr.send();
                 } catch(error) {
                     //console.log(error)
                 }
