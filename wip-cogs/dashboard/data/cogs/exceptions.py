@@ -11,3 +11,9 @@ class LoadingError(Exception):
 
 class NotLoadedError(Exception):
     pass
+
+class InvalidModel(Exception):
+    pass
+
+class HackedError(Exception):
+    pass

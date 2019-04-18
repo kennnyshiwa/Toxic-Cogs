@@ -21,14 +21,9 @@
                 text-align: center;
                 margin-top: 30px;
             }
-            h1 {
+            h1, h4 {
                 padding-right: 10px;
                 padding-left: 10px;
-            }
-            #message {
-                border: 2px solid black;
-                margin-right: 10px;
-                margin-left: 10px;
             }
             .navbar {
                 overflow: hidden;
@@ -153,16 +148,43 @@
             </div>
         </div>
         <div class="main">
-            <h1>Serverlock the bot</h1>
-            <button id="button">Toggle the serverlock</button>
+            <h1>Ignore a Discord <span class="flux">Guild</span></h1>
+            <h4>What type are you ignoring?</h4>
+            <select id="model" selected="guild">
+                <option value="guild">Guild</option>
+                <option value="channel">Channel</option>
+            </select>
+            <h4>Are you specifying the ID or Name of it? <br />(ID recommended, or the wrong <span class="flux">Guild</span>s could be ignored)</h4>
+            <select id="specifier">
+                <option value="id" id="id">Guild ID</option>
+                <option value="name" id="name">Guild Name</option>
+            </select>
+            <h4>Please input the appropriate ID or Name of the <span class="flux">Guild</span></h4>
+            <input id="identifier">
+            <br />
+            <button id="button">Ignore <span class="flux">Guild</span></button>
             <br /><br />
-            <p><span id="response">Response: (nothing announced yet)</span></p>
+            <p><span id="message">Message: (nothing loaded yet)</span></p>
         </div>
         <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
         <script>
+            $("#model").change(function() {
+                $("#model option:selected").each(function() {
+                    var newstr = $(this).attr("value")
+                    newstr = newstr.replace(/\w\S*/g, function(txt){
+                        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+                    });
+                    $(".flux").each(function() {
+                        $(this).text(newstr)
+                    })
+                    console.log($('#specifier option#id'))
+                    $('#specifier option#id').text(newstr + " ID");
+                    $('#specifier option#name').text(newstr + " Name");
+                })
+            })
             $("#button").click(function (event) {
                 var xhr = new XMLHttpRequest();
-                var url = "http://localhost:42356/cogs/admin/serverlock/action";
+                var url = "http://localhost:42356/cogs/mod/ignore/action";
                 xhr.open("POST", url, true);
                 xhr.setRequestHeader("Content-Type", "application/json");
                 xhr.onreadystatechange = function () {
@@ -174,29 +196,22 @@
                     }
                     */
                     var json = JSON.parse(xhr.responseText);
-                    if (json.success) {
-                        if (json.locked) {
-                            string = "The bot is now serverlocked"
-                        } else {
-                            string = "The bot is no longer serverlocked"
-                        }
-                    } else {
-                        if (json.loaded) {
-                            string = "Failed to serverlock bot."
-                        } else {
-                            string = "The admin cog must be loaded."
-                        }
-                    }
-                    $("#response").text("Response: " + string)
+                    $("#message").text("Message: " + json.message)
                 };
+                var data = {
+                    "type": $("#model").val(),
+                    "sp": $("#specifier").val(),
+                    "thing": $("#identifier").val()
+                }
+                var data = JSON.stringify(data);
                 try {
-                    xhr.send();
+                    xhr.send(data);
                 } catch(error) {
                     //console.log(error)
                 }
             })
             $(document).ready(function(){
-                $('#cog').keypress(function(e) {
+                $('#identifier').keypress(function(e) {
                     if(e.keyCode==13) {
                         $('#button').click();
                     }

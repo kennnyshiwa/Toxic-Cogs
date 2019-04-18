@@ -3,11 +3,12 @@ import aiohttp
 import asyncio
 import random
 
+from .data.cogs.mod import ignore
 from .data.cogs.core import load_cog, unload_cog
 from .data.cogs.admin import announce, serverlock
 from .data.cogs.cogmanager import get_cogs, get_paths, add_path
 
-from .data.cogs.exceptions import LoadedError, LocationError, LoadingError, NotLoadedError
+from .data.cogs.exceptions import LoadedError, LocationError, LoadingError, NotLoadedError, HackedError, InvalidModel
 
 memes = {
     "404": ["http://www.quickmeme.com/img/13/139e1e24e4563e65a4684885c035192402ae72fb05b5e42ad84509ef2137e212.jpg", "https://i.imgflip.com/11fjj7.jpg", "https://i.imgflip.com/gegi9.jpg", "http://www.quickmeme.com/img/84/84971a2e41c1d0ab5d45d1118f49e1f847f11f2d144f58873b4b6794e9164f5f.jpg", "https://i.pinimg.com/originals/84/03/d1/8403d12561c6ab7fd0bba3d9ecf9690f.jpg", "https://i.chzbgr.com/full/3745326080/h802C29B4/"]
@@ -264,6 +265,40 @@ class WebServer:
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    async def cogs_mod_ignore_action(self, request):
+        data = await request.json()
+        mtype = data["type"]
+        specifier = data["sp"]
+        identifier = data["thing"]
+        try:
+            ignored = await ignore(self.bot, mtype, specifier, identifier)
+        except Exception as e:
+            data = {
+                "message": str(e)
+            }
+        else:
+            if ignored:
+                data = {
+                    "message": "Now ignored."
+                }
+            else:
+                data = {
+                    "message": f"This {mtype} was already ignored."
+                }
+        return web.json_response(data)
+
+    async def cogs_mod_ignore(self, request):
+        current_path = self.path / "templates/cog_pages/mod/ignore.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
+    async def cogs_mod(self, request):
+        current_path = self.path / "templates/cog_pages/mod.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
     async def _credits(self, request):
         current_path = self.path / "templates/credits.html"
         file = open(str(current_path), 'r')
@@ -290,15 +325,32 @@ class WebServer:
         self.path = path
         await asyncio.sleep(3)
         self.app.router.add_get("/", self.home)
+        # Main pages
         self.app.router.add_get("/dashboard", self.dashboard)
         self.app.router.add_get("/credits", self._credits)
         self.app.router.add_get("/cogs", self.cogs)
+
+        # Mod
+        self.app.router.add_get("/cogs/mod", self.cogs_mod)
+        self.app.router.add_get("/cogs/mod/ignore", self.cogs_mod_ignore)
+        self.app.router.add_post("/cogs/mod/ignore/action", self.cogs_mod_ignore_action)
+
+        # Core
         self.app.router.add_get("/cogs/core", self.cogs_core)
+        self.app.router.add_get("/cogs/core/load", self.cogs_core_load)
+        self.app.router.add_post("/cogs/core/load/action", self.cogs_core_load_action)
+        self.app.router.add_get("/cogs/core/unload", self.cogs_core_unload)
+        self.app.router.add_post("/cogs/core/unload/action", self.cogs_core_unload_action)
+        self.app.router.add_get("/cogs/core/reload", self.cogs_core_reload)
+
+        # Admin
         self.app.router.add_get("/cogs/admin", self.cogs_admin)
         self.app.router.add_get("/cogs/admin/announce", self.cogs_admin_announce)
         self.app.router.add_post("/cogs/admin/announce/action", self.cogs_admin_announce_action)
         self.app.router.add_get("/cogs/admin/serverlock", self.cogs_admin_serverlock)
         self.app.router.add_post("/cogs/admin/serverlock/action", self.cogs_admin_serverlock_action)
+
+        # Cog Manager
         self.app.router.add_get("/cogs/cogmanager", self.cogs_cogmanager)
         self.app.router.add_get("/cogs/cogmanager/cogs", self.cogs_cogmanager_cogs)
         self.app.router.add_get("/cogs/cogmanager/cogs/action", self.cogs_cogmanager_cogs_action)
@@ -306,11 +358,8 @@ class WebServer:
         self.app.router.add_get("/cogs/cogmanager/paths/action", self.cogs_cogmanager_paths_action)
         self.app.router.add_get("/cogs/cogmanager/addpath", self.cogs_cogmanager_add_path)
         self.app.router.add_post("/cogs/cogmanager/addpath/action", self.cogs_cogmanager_add_path_action)
-        self.app.router.add_get("/cogs/core/load", self.cogs_core_load)
-        self.app.router.add_post("/cogs/core/load/action", self.cogs_core_load_action)
-        self.app.router.add_get("/cogs/core/unload", self.cogs_core_unload)
-        self.app.router.add_post("/cogs/core/unload/action", self.cogs_core_unload_action)
-        self.app.router.add_get("/cogs/core/reload", self.cogs_core_reload)
+
+
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
         self.handler = self.app.make_handler(debug=True)
