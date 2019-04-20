@@ -10,11 +10,25 @@
                 font-family: sans-serif;
             }
             .main {
-                margin-top: 50px;
+                border-radius: 25px;
+                border: 2px solid black;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                -moz-transform: translateX(-50%) translateY(-50%);
+                -webkit-transform: translateX(-50%) translateY(-50%);
+                transform: translateX(-50%) translateY(-50%);
+                text-align: center;
+                margin-top: 30px;
             }
-            h1 {
+            h1, p {
                 padding-right: 10px;
                 padding-left: 10px;
+            }
+            #message {
+                border: 2px solid black;
+                margin-right: 10px;
+                margin-left: 10px;
             }
             .navbar {
                 overflow: hidden;
@@ -139,12 +153,51 @@
             </div>
         </div>
         <div class="main">
-            <h1>Admin</h1>
-            <ul>
-                <li><a href="/cogs/admin/announce">Send an announcement</a></li>
-                <li><a href="/cogs/admin/serverlock">Serverlock</a></li>
-            </ul>
+            <h1>Login below</h1>
+            <input type="password" id="pass">
+            <br />
+            <button id="button">Login</button>
+            <br /><br />
+            <p><span id="response">Response: Not logged in yet</span></p>
         </div>
+        <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
+        <script>
+            $("#button").click(function (event) {
+                var xhr = new XMLHttpRequest();
+                var url = "/login/action";
+                xhr.open("POST", url, true);
+                xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState !== 4) { return }
+                    /*
+                    if (xhr.status === 409) {
+                        console.log("409")
+                        return
+                    }
+                    */
+                    var json = JSON.parse(xhr.responseText);
+                    $("#response").text("Response: " + json.response)
+                    if (json.response == "Logged in") {
+                        setTimeout(function() {
+                            window.location.replace("/dashboard")
+                        }, 500)
+                    }
+                };
+                var data = JSON.stringify({"pass": $("#pass").val()});
+                try {
+                    xhr.send(data);
+                } catch(error) {
+                    //console.log(error)
+                }
+            })
+            $(document).ready(function(){
+                $('#pass').keypress(function(e) {
+                    if(e.keyCode==13) {
+                        $('#button').click();
+                    }
+                });
+            });
+        </script>
         <script>
             /* Open when someone clicks on the span element */
             function openNav() {

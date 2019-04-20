@@ -2,6 +2,10 @@ from aiohttp import web
 import aiohttp
 import asyncio
 import random
+import base64
+from cryptography import fernet
+from aiohttp_session import setup, get_session, session_middleware
+from aiohttp_session.cookie_storage import EncryptedCookieStorage
 
 from .data.cogs.mod import ignore
 from .data.cogs.core import load_cog, unload_cog
@@ -10,19 +14,39 @@ from .data.cogs.cogmanager import get_cogs, get_paths, add_path
 
 from .data.cogs.exceptions import LoadedError, LocationError, LoadingError, NotLoadedError, HackedError, InvalidModel
 
-memes = {
-    "404": ["http://www.quickmeme.com/img/13/139e1e24e4563e65a4684885c035192402ae72fb05b5e42ad84509ef2137e212.jpg", "https://i.imgflip.com/11fjj7.jpg", "https://i.imgflip.com/gegi9.jpg", "http://www.quickmeme.com/img/84/84971a2e41c1d0ab5d45d1118f49e1f847f11f2d144f58873b4b6794e9164f5f.jpg", "https://i.pinimg.com/originals/84/03/d1/8403d12561c6ab7fd0bba3d9ecf9690f.jpg", "https://i.chzbgr.com/full/3745326080/h802C29B4/"]
-}
+def not_login_required(fn):
+    async def wrapped(cls, request, *args, **kwargs):
+        app = request.app
+        router = app.router
+        session = await get_session(request)
+        if (await cls.cog.conf.password()) == session.get("password", None):
+            return web.HTTPFound("/dashboard")
+        return await fn(cls, request, *args, **kwargs)
+    return wrapped
+
+def login_required(fn):
+    async def wrapped(cls, request, *args, **kwargs):
+        app = request.app
+        router = app.router
+        session = await get_session(request)
+        if 'password' not in session:
+            return web.HTTPFound("/login")
+        actual = await cls.cog.conf.password()
+        if actual != session["password"]:
+            return web.HTTPFound("/login")
+        return await fn(cls, request, *args, **kwargs)
+    return wrapped
 
 class WebServer:
     def __init__(self, bot, cog):
-        self.app = web.Application(middlewares=[self.error_middleware])
+        fernet_key = fernet.Fernet.generate_key()
+        secret_key = base64.urlsafe_b64decode(fernet_key)
+        self.app = web.Application(middlewares=[self.error_middleware, session_middleware(EncryptedCookieStorage(secret_key))])
         self.bot = bot
         self.port = 42356
         self.handler = None
         self.runner = None
         self.site = None
-        self.body = None
         self.path = None
         self.cog = cog
         self.session = aiohttp.ClientSession()
@@ -31,22 +55,47 @@ class WebServer:
         self.bot.loop.create_task(self.runner.cleanup())
         self.session.detach()
 
+    @not_login_required
+    async def login_action(self, request):
+        session = await get_session(request)
+        password = await self.cog.conf.password()
+        given = (await request.json())["pass"]
+        if given == password:
+            session["password"] = password
+            return web.json_response({"response": "Logged in"})
+        else:
+            return web.json_response({"response": "Failed to log in"})
+
+    @not_login_required
+    async def login(self, request):
+        current_path = self.path / "templates/login.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
     async def home(self, request):
         current_path = self.path / "templates/index.html"
         file = open(str(current_path), 'r')
         html = file.read()
-        html = html.replace("{cog_data_path}", str(r"C:\Users\tmsb7\Envs\rewrite2\red-cogs-submit\wip-cogs\dashboard"))
         return web.Response(text=html, content_type="text/html")
 
+    @login_required
     async def dashboard(self, request):
         current_path = self.path / "templates/dashboard.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
-    
-    async def cogs(self, request):
-        return aiohttp.web.HTTPFound('http://localhost:42356/dashboard')
 
+    @login_required
+    async def errors_action(self, request):
+        c = await self.cog.conf.command_errors()
+        return c
+    
+    @login_required
+    async def cogs(self, request):
+        return aiohttp.web.HTTPFound('/dashboard')
+
+    @login_required
     async def cogs_core_unload_action(self, request):
         if request.method != "POST":
             data = {
@@ -76,6 +125,7 @@ class WebServer:
                 }
         return web.json_response(data, status=data["code"], reason=data["message"])
 
+    @login_required
     async def cogs_core_load_action(self, request):
         if request.method != "POST":
             data = {
@@ -115,30 +165,35 @@ class WebServer:
                 }
         return web.json_response(data, status=data["code"], reason=data["message"])
 
+    @login_required
     async def cogs_core_load(self, request):
         current_path = self.path / "templates/cog_pages/core/load.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    @login_required
     async def cogs_core_unload(self, request):
         current_path = self.path / "templates/cog_pages/core/unload.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    @login_required
     async def cogs_core_reload(self, request):
         current_path = self.path / "templates/cog_pages/core/reload.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    @login_required
     async def cogs_core(self, request):
         current_path = self.path / "templates/cog_pages/core.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    @login_required
     async def cogs_cogmanager_cogs_action(self, request):
         loaded, unloaded = await get_cogs(self.bot)
         data = {
@@ -147,12 +202,14 @@ class WebServer:
         }
         return web.json_response(data)
 
+    @login_required
     async def cogs_cogmanager_cogs(self, request):
         current_path = self.path / "templates/cog_pages/cogmanager/cogs.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    @login_required
     async def cogs_cogmanager_paths_action(self, request):
         install, core, cogs = await get_paths(self.bot)
         data = {
@@ -162,12 +219,14 @@ class WebServer:
         }
         return web.json_response(data)
 
+    @login_required
     async def cogs_cogmanager_paths(self, request):
         current_path = self.path / "templates/cog_pages/cogmanager/paths.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    @login_required
     async def cogs_cogmanager_add_path_action(self, request):
         path = await request.json()
         path = path['path']
@@ -183,18 +242,21 @@ class WebServer:
             }
         return web.json_response(data)
 
+    @login_required
     async def cogs_cogmanager_add_path(self, request):
         current_path = self.path / "templates/cog_pages/cogmanager/add_path.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    @login_required
     async def cogs_cogmanager(self, request):
         current_path = self.path / "templates/cog_pages/cogmanager.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    @login_required
     async def cogs_admin_announce_action(self, request):
         message = await request.json()
         message = message["m"]
@@ -217,12 +279,14 @@ class WebServer:
                 }
         return web.json_response(data)
 
+    @login_required
     async def cogs_admin_announce(self, request):
         current_path = self.path / "templates/cog_pages/admin/announce.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    @login_required
     async def cogs_admin_serverlock_action(self, request):
         try:
             locked = await serverlock(self.bot)
@@ -253,18 +317,21 @@ class WebServer:
                 }
         return web.json_response(data)
 
+    @login_required
     async def cogs_admin_serverlock(self, request):
         current_path = self.path / "templates/cog_pages/admin/serverlock.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    @login_required
     async def cogs_admin(self, request):
         current_path = self.path / "templates/cog_pages/admin.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    @login_required
     async def cogs_mod_ignore_action(self, request):
         data = await request.json()
         mtype = data["type"]
@@ -287,12 +354,14 @@ class WebServer:
                 }
         return web.json_response(data)
 
+    @login_required
     async def cogs_mod_ignore(self, request):
         current_path = self.path / "templates/cog_pages/mod/ignore.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
+    @login_required
     async def cogs_mod(self, request):
         current_path = self.path / "templates/cog_pages/mod.html"
         file = open(str(current_path), 'r')
@@ -307,6 +376,7 @@ class WebServer:
 
     @web.middleware
     async def error_middleware(self, request, handler):
+        # For handling 404s
         try:
             response = await handler(request)
             if response.status != 404:
@@ -323,12 +393,14 @@ class WebServer:
 
     async def make_webserver(self, path):
         self.path = path
-        await asyncio.sleep(3)
         self.app.router.add_get("/", self.home)
+
         # Main pages
         self.app.router.add_get("/dashboard", self.dashboard)
         self.app.router.add_get("/credits", self._credits)
         self.app.router.add_get("/cogs", self.cogs)
+        self.app.router.add_get("/login", self.login)
+        self.app.router.add_post("/login/action", self.login_action)
 
         # Mod
         self.app.router.add_get("/cogs/mod", self.cogs_mod)
@@ -359,10 +431,9 @@ class WebServer:
         self.app.router.add_get("/cogs/cogmanager/addpath", self.cogs_cogmanager_add_path)
         self.app.router.add_post("/cogs/cogmanager/addpath/action", self.cogs_cogmanager_add_path_action)
 
-
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
-        self.handler = self.app.make_handler(debug=True)
+        self.handler = self.app.make_handler()
         self.site = web.TCPSite(self.runner, "0.0.0.0", self.port)
         await self.site.start()
         print("Dashboard up!")

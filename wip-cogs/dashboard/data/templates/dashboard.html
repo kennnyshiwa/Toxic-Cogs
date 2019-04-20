@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>Red - Discord Bot Dashboard: Main</title>
+        <title>Red - Discord Bot Dashboard</title>
         <link rel="shortcut icon" type="image/png" href="https://i.imgur.com/uJGZl4O.png"/>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
-        <script src="jquery-3.3.1.min.js"></script>
         <style>
             a:link {
                 color: #0000ff;
@@ -143,36 +142,36 @@
     <body>
         <div id="navbar">
             <a onclick="openNav()" class="icon"><i class="fa fa-bars"></i></a>
-            <a href="http://localhost:42356/dashboard">Main dashboard</a>
-            <a href="http://localhost:42356/cogs/core">Core</a>
-            <a href="http://localhost:42356/cogs/cogmanager">Cog Manager UI</a>
-            <a href="http://localhost:42356/cogs/admin">Admin</a>
-            <a href="http://localhost:42356/cogs/mod">Mod</a>
+            <a href="/dashboard">Main dashboard</a>
+            <a href="/cogs/core">Core</a>
+            <a href="/cogs/cogmanager">Cog Manager UI</a>
+            <a href="/cogs/admin">Admin</a>
+            <a href="/cogs/mod">Mod</a>
         </div>
         <div id="myNav" class="overlay">
             <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
             <div class="overlay-content">
-                <a href="http://localhost:42356/dashboard"><b>Main Dashboard</b></a>
-                <a href="http://localhost:42356/cogs/core">Core</a>
+                <a href="/dashboard"><b>Main Dashboard</b></a>
+                <a href="/cogs/core">Core</a>
                 <ul>
-                    <li><a href="http://localhost:42356/cogs/core/load">Load</a></li>
-                    <li><a href="http://localhost:42356/cogs/core/unload">Unload</a></li>
-                    <li><a href="http://localhost:42356/cogs/core/reload">Reload</a></li>
+                    <li><a href="/cogs/core/load">Load</a></li>
+                    <li><a href="/cogs/core/unload">Unload</a></li>
+                    <li><a href="/cogs/core/reload">Reload</a></li>
                 </ul>
-                <a href="http://localhost:42356/cogs/cogmanager">Cog Manager UI</a>
+                <a href="/cogs/cogmanager">Cog Manager UI</a>
                 <ul>
-                    <li><a href="http://localhost:42356/cogs/cogmanager/cogs">Cogs</a></li>
-                    <li><a href="http://localhost:42356/cogs/cogmanager/paths">Paths</a></li>
-                    <li><a href="http://localhost:42356/cogs/cogmanager/addpath">Addpath</a></li>
+                    <li><a href="/cogs/cogmanager/cogs">Cogs</a></li>
+                    <li><a href="/cogs/cogmanager/paths">Paths</a></li>
+                    <li><a href="/cogs/cogmanager/addpath">Addpath</a></li>
                 </ul>
-                <a href="http://localhost:42356/cogs/admin">Admin</a>
+                <a href="/cogs/admin">Admin</a>
                 <ul>
-                    <li><a href="http://localhost:42356/cogs/admin/announce">Announce</a></li>
-                    <li><a href="http://localhost:42356/cogs/admin/serverlock">Serverlock</a></li>
+                    <li><a href="/cogs/admin/announce">Announce</a></li>
+                    <li><a href="/cogs/admin/serverlock">Serverlock</a></li>
                 </ul>
-                <a href="http://localhost:42356/cogs/mod">Mod</a>
+                <a href="/cogs/mod">Mod</a>
                 <ul>
-                    <li><a href="http://localhost:42356/cogs/mod/ignore">Ignore</a></li>
+                    <li><a href="/cogs/mod/ignore">Ignore</a></li>
                 </ul>
             </div>
         </div>
@@ -190,7 +189,7 @@
                 <div class="row cogs">
                     <div class="col-lg-3 contains starting">
                         <center>
-                            <h2 id="admin"><a href="http://localhost:42356/cogs/admin">Admin</a></h2>
+                            <h2 id="admin"><a href="/cogs/admin">Admin</a></h2>
                             <h6><i>A collection of server administration utilities.</i></h6>
                         </center>
                         <p>Configure/call the following:</p>
@@ -204,7 +203,7 @@
                     </div>
                     <div class="col-lg-3 contains">
                         <center>
-                            <h2 id="mod"><a href="http://localhost:42356/cogs/mod">Mod</a></h2>
+                            <h2 id="mod"><a href="/cogs/mod">Mod</a></h2>
                             <h6><i>Moderation tools.</i></h6>
                         </center>
                         <p>Configure/call the following:</p>
@@ -218,7 +217,7 @@
                     </div>
                     <div class="col-lg-3 contains">
                         <center>
-                            <h2 id="downloader"><a href="http://localhost:42356/cogs/downloader">Downloader</a></h2>
+                            <h2 id="downloader"><a href="/cogs/downloader">Downloader</a></h2>
                             <h6><i>Install cogs and add repos to your bot</i></h6>
                         </center>
                         <p>Configure/call the following:</p>
@@ -237,7 +236,7 @@
                 <div class="row cogs">
                     <div class="col-lg-3 contains starting">
                         <center>
-                            <h2 id="core"><a href="http://localhost:42356/cogs/core">Core</a></h2>
+                            <h2 id="core"><a href="/cogs/core">Core</a></h2>
                             <h6><i>Commands related to core functions</i></h6>
                         </center>
                         <p>Configure/call the following:</p>
@@ -252,7 +251,7 @@
                     </div>
                     <div class="col-lg-3 contains">
                         <center>
-                            <h2 id="cogmanager"><a href="http://localhost:42356/cogs/cogmanager">Cog Manager UI</a></h2>
+                            <h2 id="cogmanager"><a href="/cogs/cogmanager">Cog Manager UI</a></h2>
                             <h6><i>Commands to interface with Red's cog manager.</i></h6>
                         </center>
                         <p>Configure/call the following:</p>
@@ -267,7 +266,7 @@
                     </div>
                     <div class="col-lg-3 contains">
                         <center>
-                            <h2 id="alias"><a href="http://localhost:42356/cogs/alias">Alias</a></h2>
+                            <h2 id="alias"><a href="/cogs/alias">Alias</a></h2>
                             <h6><i>Create aliases for commands.</i></h6>
                         </center>
                         <p>Configure/call the following:</p>
@@ -280,7 +279,7 @@
                     </div>
                 </div>
             </div>
-            <p><i><a href="http://localhost:42356/credits">Credits</a></i></p>
+            <p><i><a href="/credits">Credits</a></i></p>
         </div>
         <script>
             /* Open when someone clicks on the span element */

@@ -114,36 +114,36 @@
     <body>
         <div class="navbar">
             <a onclick="openNav()" class="icon"><i class="fa fa-bars"></i></a>
-            <a href="http://localhost:42356/dashboard">Main dashboard</a>
-            <a href="http://localhost:42356/cogs/core">Core</a>
-            <a href="http://localhost:42356/cogs/cogmanager">Cog Manager UI</a>
-            <a href="http://localhost:42356/cogs/admin">Admin</a>
-            <a href="http://localhost:42356/cogs/mod">Mod</a>
+            <a href="/dashboard">Main dashboard</a>
+            <a href="/cogs/core">Core</a>
+            <a href="/cogs/cogmanager">Cog Manager UI</a>
+            <a href="/cogs/admin">Admin</a>
+            <a href="/cogs/mod">Mod</a>
         </div>
         <div id="myNav" class="overlay">
             <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
             <div class="overlay-content">
-                <a href="http://localhost:42356/dashboard"><b>Main Dashboard</b></a>
-                <a href="http://localhost:42356/cogs/core">Core</a>
+                <a href="/dashboard"><b>Main Dashboard</b></a>
+                <a href="/cogs/core">Core</a>
                 <ul>
-                    <li><a href="http://localhost:42356/cogs/core/load">Load</a></li>
-                    <li><a href="http://localhost:42356/cogs/core/unload">Unload</a></li>
-                    <li><a href="http://localhost:42356/cogs/core/reload">Reload</a></li>
+                    <li><a href="/cogs/core/load">Load</a></li>
+                    <li><a href="/cogs/core/unload">Unload</a></li>
+                    <li><a href="/cogs/core/reload">Reload</a></li>
                 </ul>
-                <a href="http://localhost:42356/cogs/cogmanager">Cog Manager UI</a>
+                <a href="/cogs/cogmanager">Cog Manager UI</a>
                 <ul>
-                    <li><a href="http://localhost:42356/cogs/cogmanager/cogs">Cogs</a></li>
-                    <li><a href="http://localhost:42356/cogs/cogmanager/paths">Paths</a></li>
-                    <li><a href="http://localhost:42356/cogs/cogmanager/addpath">Addpath</a></li>
+                    <li><a href="/cogs/cogmanager/cogs">Cogs</a></li>
+                    <li><a href="/cogs/cogmanager/paths">Paths</a></li>
+                    <li><a href="/cogs/cogmanager/addpath">Addpath</a></li>
                 </ul>
-                <a href="http://localhost:42356/cogs/admin">Admin</a>
+                <a href="/cogs/admin">Admin</a>
                 <ul>
-                    <li><a href="http://localhost:42356/cogs/admin/announce">Announce</a></li>
-                    <li><a href="http://localhost:42356/cogs/admin/serverlock">Serverlock</a></li>
+                    <li><a href="/cogs/admin/announce">Announce</a></li>
+                    <li><a href="/cogs/admin/serverlock">Serverlock</a></li>
                 </ul>
-                <a href="http://localhost:42356/cogs/mod">Mod</a>
+                <a href="/cogs/mod">Mod</a>
                 <ul>
-                    <li><a href="http://localhost:42356/cogs/mod/ignore">Ignore</a></li>
+                    <li><a href="/cogs/mod/ignore">Ignore</a></li>
                 </ul>
             </div>
         </div>
@@ -184,7 +184,7 @@
             })
             $("#button").click(function (event) {
                 var xhr = new XMLHttpRequest();
-                var url = "http://localhost:42356/cogs/mod/ignore/action";
+                var url = "/cogs/mod/ignore/action";
                 xhr.open("POST", url, true);
                 xhr.setRequestHeader("Content-Type", "application/json");
                 xhr.onreadystatechange = function () {
