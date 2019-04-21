@@ -9,7 +9,7 @@ from .webserver import WebServer
 
 class Dashboard(commands.Cog):
 
-	__version__ = "0.3.1a"
+	__version__ = "0.3.2a"
 
 	def __init__(self, bot):
 		self.bot = bot
@@ -47,11 +47,6 @@ class Dashboard(commands.Cog):
 	async def dashboard(self, ctx):
 		"""Group command for controlling the web dashboard for Red"""
 		pass
-
-	@checks.is_owner()
-	@dashboard.command()
-	async def testing(self, ctx):
-		blah
 
 	@checks.is_owner()
 	@dashboard.group()
