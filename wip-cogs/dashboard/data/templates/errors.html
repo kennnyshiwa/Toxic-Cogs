@@ -10,16 +10,7 @@
                 font-family: sans-serif;
             }
             .main {
-                border-radius: 25px;
-                border: 2px solid black;
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                -moz-transform: translateX(-50%) translateY(-50%);
-                -webkit-transform: translateX(-50%) translateY(-50%);
-                transform: translateX(-50%) translateY(-50%);
-                text-align: center;
-                margin-top: 30px;
+                margin-top: 50px;
             }
             h1, p {
                 padding-right: 10px;
@@ -100,13 +91,23 @@
                 display: block;
             }
 
+            table, th, td {
+                border: 1px solid black;
+                margin: 50px;
+            }
+
+            .link {
+                color: -webkit-link;
+                cursor: pointer;
+                text-decoration: underline;
+            }
+
             #errors {
                 float: right;
             }
 
             #errors:hover {
                 background: #ff0000;
-
             }
 
             /* When the height of the screen is less than 450 pixels, change the font-size of the links and position the close button again, so they don't overlap */
@@ -158,15 +159,21 @@
             </div>
         </div>
         <div class="main">
-            <h1 id="loading">Loading...</h1>
-            <p id="install"></p>
-            <p id="core"></p>
-            <p id="cog"></p>
+            <h1>Errors</h1>
+            <p>Command errors that have been caught by this cog.</p>
+            <table style="width: 90%" id="table">
+                <tr>
+                    <th>Invoker</th>
+                    <th>Command</th>
+                    <th>Short error</th>
+                    <th>ID</th>
+                </tr>
+            </table>
         </div>
         <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
         <script>
             var xhr = new XMLHttpRequest();
-            var url = "/cogs/cogmanager/paths/action";
+            var url = "/errors/action";
             xhr.open("GET", url, true);
             xhr.setRequestHeader("Content-Type", "application/json");
             xhr.onreadystatechange = function () {
@@ -178,10 +185,10 @@
                 }
                 */
                 var json = JSON.parse(xhr.responseText);
-                $("#install").text("Install path: " + json.i)
-                $("#core").text("Core path: " + json.core)
-                $("#cog").html("Added paths: <br />" + json.cogs.join("<br />"))
-                $("#loading").text("Finished loading")
+                for (y=0; y < json.data.length; y++) {
+                    x = json.data[y]
+                    $("#table tr:last").after("<tr><td>" + x.invoker + "</td><td>" + x.command + "</td><td><span class='link'>" + x.short + "</span></td><td>" + String(x.id))
+                }
             };
             try {
                 xhr.send()
@@ -190,6 +197,11 @@
             }
         </script>
         <script>
+            $(document).on("click", ".link", function() {
+                _id = $(this).closest("td").next().text()
+                localStorage.error_id = _id
+                location.replace("/errors/view")
+            })
             /* Open when someone clicks on the span element */
             function openNav() {
                 document.getElementById("myNav").style.width = "15%";

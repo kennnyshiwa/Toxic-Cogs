@@ -87,9 +87,60 @@ class WebServer:
         return web.Response(text=html, content_type="text/html")
 
     @login_required
+    async def error_remove_action(self, request):
+        _id = int((await request.json())["id"])
+        removed = False
+        async with self.cog.conf.command_errors() as c:
+            for e in c:
+                if e["id"] == _id:
+                    c.remove(e)
+                    removed = True
+        if removed:
+            return web.json_response({"status": 200})
+        return web.json_response({"status": 400})
+
+    @login_required
+    async def error_view_action(self, request):
+        print(await request.json())
+        _id = int((await request.json())["id"])
+        selection = None
+        async with self.cog.conf.command_errors() as c:
+            for e in c:
+                if e["id"] == _id:
+                    selection = e
+        if selection:
+            data = {
+                "success": True,
+                "id": _id,
+                "invoker": selection["invoker"],
+                "command": selection["command"],
+                "long": selection["error"],
+                "short": selection["short"]
+            }
+        else:
+            data = {
+                "success": False
+            }
+        return web.json_response(data)        
+
+    @login_required
+    async def error_view(self, request):
+        current_path = self.path / "templates/error_view.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
+
+    @login_required
     async def errors_action(self, request):
         c = await self.cog.conf.command_errors()
-        return c
+        return web.json_response({"data": c})
+
+    @login_required
+    async def errors(self, request):
+        current_path = self.path / "templates/errors.html"
+        file = open(str(current_path), 'r')
+        html = file.read()
+        return web.Response(text=html, content_type="text/html")
     
     @login_required
     async def cogs(self, request):
@@ -399,8 +450,15 @@ class WebServer:
         self.app.router.add_get("/dashboard", self.dashboard)
         self.app.router.add_get("/credits", self._credits)
         self.app.router.add_get("/cogs", self.cogs)
+        self.app.router.add_get("/errors/action", self.errors_action)
         self.app.router.add_get("/login", self.login)
         self.app.router.add_post("/login/action", self.login_action)
+
+        # Errors
+        self.app.router.add_get("/errors", self.errors)
+        self.app.router.add_get("/errors/view", self.error_view)
+        self.app.router.add_post("/errors/view/action", self.error_view_action)
+        self.app.router.add_post("/errors/remove/action", self.error_remove_action)
 
         # Mod
         self.app.router.add_get("/cogs/mod", self.cogs_mod)

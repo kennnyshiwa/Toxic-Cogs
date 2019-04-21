@@ -128,6 +128,14 @@
                 display: block;
             }
 
+            #errors {
+                float: right !important;
+            }
+
+            #errors:hover {
+                background: #ff0000 !important;
+            }
+
             /* When the height of the screen is less than 450 pixels, change the font-size of the links and position the close button again, so they don't overlap */
             @media screen and (max-height: 450px) {
                 .overlay a {font-size: 20px}
@@ -147,6 +155,7 @@
             <a href="/cogs/cogmanager">Cog Manager UI</a>
             <a href="/cogs/admin">Admin</a>
             <a href="/cogs/mod">Mod</a>
+            <a href="/errors" id="errors">Errors</a>
         </div>
         <div id="myNav" class="overlay">
             <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
