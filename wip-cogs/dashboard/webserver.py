@@ -173,12 +173,13 @@ class WebServer:
             code = request.query["code"]
         except KeyError:
             return web.json_response(str(request.query))
+        redirect = await self.cog.conf.redirect()
         data = {
             "client_id": self.bot.user.id,
             "client_secret": (await self.cog.conf.secret()),
             "grant_type": "authorization_code",
             "code": code,
-            "redirect_uri": "http://localhost:42356/useCode",
+            "redirect_uri": redirect + "/useCode",
             "scope": "identify"
         }
         headers = {

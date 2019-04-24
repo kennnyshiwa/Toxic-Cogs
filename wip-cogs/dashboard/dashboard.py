@@ -9,13 +9,13 @@ from .webserver import WebServer
 
 class Dashboard(commands.Cog):
 
-	__version__ = "0.3.2a"
+	__version__ = "0.3.3a"
 	__red__ = "3.0.0"
 
 	def __init__(self, bot):
 		self.bot = bot
 		self.conf = Config.get_conf(self, identifier=473541068378341376)
-		self.conf.register_global(errors=[], command_errors=[], logerrors=False, secret="", errorpass=[])
+		self.conf.register_global(errors=[], command_errors=[], logerrors=False, secret="", errorpass=[], redirect="http://localhost:42356")
 		self.bot.add_listener(self.error, "on_command_error")
 		self.web = WebServer(self.bot, self)
 		self.path = bundled_data_path(self)
@@ -81,4 +81,10 @@ class Dashboard(commands.Cog):
 	async def secret(self, ctx, *, secret: str):
 		"""Set the client secret needed for Discord Oauth."""
 		await self.conf.secret.set(secret)
+		await ctx.tick()
+
+	@settings.command()
+	async def redirect(self, ctx, redirect: str):
+		"""Set the redirect for after logging in via Discord OAuth"""
+		await self.conf.redirect.set(redirect)
 		await ctx.tick()
