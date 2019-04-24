@@ -1,8 +1,10 @@
 from aiohttp import web
+import time
 import aiohttp
 import asyncio
 import random
 import base64
+import discord
 from cryptography import fernet
 from aiohttp_session import setup, get_session, session_middleware
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
@@ -19,7 +21,7 @@ def not_login_required(fn):
         app = request.app
         router = app.router
         session = await get_session(request)
-        if (await cls.cog.conf.password()) == session.get("password", None):
+        if 'user_id' in session:
             return web.HTTPFound("/dashboard")
         return await fn(cls, request, *args, **kwargs)
     return wrapped
@@ -29,13 +31,98 @@ def login_required(fn):
         app = request.app
         router = app.router
         session = await get_session(request)
-        if 'password' not in session:
-            return web.HTTPFound("/login")
-        actual = await cls.cog.conf.password()
-        if actual != session["password"]:
+        if 'user_id' not in session:
             return web.HTTPFound("/login")
         return await fn(cls, request, *args, **kwargs)
     return wrapped
+
+"""
+Permissions are given via integer number, and their highest one across all mutual guilds.
+For example, if they are admin in one, but a normal user in another, they still count as an admin
+
+1 => Normal User
+2 => Mod
+3 => Administrator
+4 => Guild Owner
+5 => Bot Owner
+
+1_ => Error pass
+"""
+
+async def get_permissions(cls, request):
+    session = await get_session(request)
+    user_id = int(session["user_id"])
+    if await cls.bot.is_owner(await cls.bot.get_user_info(user_id)):
+        return 15
+    perm = 0
+    if str(user_id) in (await cls.cog.conf.errorpass()):
+        perm += 10
+    # Check if guild owner
+    for guild in cls.bot.guilds:
+        if guild.owner_id == user_id:
+            # They have guild owner, and since they aren't bot owner, its the highest they can have
+            perm += 4
+            return perm
+
+    # Check if admin
+    for guild in cls.bot.guilds:
+        member = guild.get_member(user_id)
+        if not member:
+            continue
+        if member.guild_permissions.administrator:
+            perm += 3
+            return perm
+
+    # Check if mod
+    for guild in cls.bot.guilds:
+        member = guild.get_member(user_id)
+        role = await cls.bot.db.guild(guild).mod_role()
+        if role in [mrole.id for mrole in member.roles]:
+            perm += 2
+            return perm
+
+    return perm + 1
+
+"""
+Basically the same as the above, but uses a specific guild/channel and checks permissions
+Follows the same integers as above
+"""
+async def get_specific_perms(cls, request, mobject):
+    session = await get_session(request)
+    user_id = int(session["user_id"])
+    if await cls.bot.is_owner(await cls.bot.get_user_info(user_id)):
+        return 5
+    mobject = int(mobject)
+    thing = cls.bot.get_guild(mobject)
+    if not thing:
+        thing = cls.bot.get_channel(mobject)
+        if not thing:
+            return 0
+    if isinstance(thing, discord.Guild):
+        member = thing.get_member(user_id)
+        if not member:
+            return 0
+        if thing.owner_id == user_id:
+            return 4
+        if member.guild_permissions.administrator:
+            return 3
+        role = await cls.bot.db.guild(thing).mod_role()
+        if role in [mrole.id for mrole in member.roles]:
+            return 2
+        return 1
+    else:
+        member = thing.guild.get_member(user_id)
+        if not member:
+            return 0
+        if thing.guild.owner_id == user_id:
+            return 4
+        if thing.permissions_for(member).administrator:
+            return 3
+        role = await cls.bot.db.guild(thing.guild).mod_role()
+        if role in [mrole.id for mrole in member.roles]:
+            return 2
+        return 1
+        
 
 class WebServer:
     def __init__(self, bot, cog):
@@ -71,6 +158,7 @@ class WebServer:
         current_path = self.path / "templates/login.html"
         file = open(str(current_path), 'r')
         html = file.read()
+        html = html.replace("{{ id }}", str(self.bot.user.id))
         return web.Response(text=html, content_type="text/html")
 
     async def home(self, request):
@@ -78,6 +166,36 @@ class WebServer:
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
+
+    @not_login_required
+    async def use_code(self, request):
+        try:
+            code = request.query["code"]
+        except KeyError:
+            return web.json_response(str(request.query))
+        data = {
+            "client_id": self.bot.user.id,
+            "client_secret": (await self.cog.conf.secret()),
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": "http://localhost:42356/useCode",
+            "scope": "identify"
+        }
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        }
+        response = await self.session.post("https://discordapp.com/api/v6/oauth2/token", data=data, headers=headers)
+        try:
+            token = (await response.json())["access_token"]
+        except KeyError:
+            return web.json_response(await response.json())
+        new = await self.session.get("https://discordapp.com/api/v6/users/@me", headers={"Authorization": f"Bearer {token}"})
+        new_data = await new.json()
+        if "id" in new_data:
+            session = await get_session(request)
+            session["user_id"] = new_data["id"]
+            return aiohttp.web.HTTPFound('/dashboard')
+        return web.json_response(await new.json())
 
     @login_required
     async def dashboard(self, request):
@@ -89,6 +207,9 @@ class WebServer:
     @login_required
     async def error_remove_action(self, request):
         _id = int((await request.json())["id"])
+        data = await get_permissions(self, request)
+        if data < 10:
+            return aiohttp.web.HTTPFound('/dashboard')
         removed = False
         async with self.cog.conf.command_errors() as c:
             for e in c:
@@ -101,8 +222,10 @@ class WebServer:
 
     @login_required
     async def error_view_action(self, request):
-        print(await request.json())
         _id = int((await request.json())["id"])
+        data = await get_permissions(self, request)
+        if data < 10:
+            return aiohttp.web.HTTPFound('/dashboard')
         selection = None
         async with self.cog.conf.command_errors() as c:
             for e in c:
@@ -125,18 +248,38 @@ class WebServer:
 
     @login_required
     async def error_view(self, request):
+        data = await get_permissions(self, request)
+        if data < 10:
+            return aiohttp.web.HTTPFound('/dashboard')
         current_path = self.path / "templates/error_view.html"
         file = open(str(current_path), 'r')
         html = file.read()
         return web.Response(text=html, content_type="text/html")
 
     @login_required
+    async def monitor_time(self, request):
+        t = time.time()
+        data = await get_permissions(self, request)
+        e = time.time()
+        returning = {
+            "perm": data,
+            "time": e - t
+        }
+        return web.json_response(returning)
+
+    @login_required
     async def errors_action(self, request):
+        data = await get_permissions(self, request)
+        if data < 10:
+            return aiohttp.web.HTTPFound('/dashboard')
         c = await self.cog.conf.command_errors()
         return web.json_response({"data": c})
 
     @login_required
     async def errors(self, request):
+        data = await get_permissions(self, request)
+        if data < 10:
+            return aiohttp.web.HTTPFound('/dashboard')
         current_path = self.path / "templates/errors.html"
         file = open(str(current_path), 'r')
         html = file.read()
@@ -148,6 +291,11 @@ class WebServer:
 
     @login_required
     async def cogs_core_unload_action(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         if request.method != "POST":
             data = {
                 "code": 405,
@@ -178,6 +326,11 @@ class WebServer:
 
     @login_required
     async def cogs_core_load_action(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         if request.method != "POST":
             data = {
                 "code": 405,
@@ -218,6 +371,11 @@ class WebServer:
 
     @login_required
     async def cogs_core_load(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         current_path = self.path / "templates/cog_pages/core/load.html"
         file = open(str(current_path), 'r')
         html = file.read()
@@ -225,6 +383,11 @@ class WebServer:
 
     @login_required
     async def cogs_core_unload(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         current_path = self.path / "templates/cog_pages/core/unload.html"
         file = open(str(current_path), 'r')
         html = file.read()
@@ -232,6 +395,11 @@ class WebServer:
 
     @login_required
     async def cogs_core_reload(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         current_path = self.path / "templates/cog_pages/core/reload.html"
         file = open(str(current_path), 'r')
         html = file.read()
@@ -246,6 +414,11 @@ class WebServer:
 
     @login_required
     async def cogs_cogmanager_cogs_action(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         loaded, unloaded = await get_cogs(self.bot)
         data = {
             "l": loaded,
@@ -255,6 +428,11 @@ class WebServer:
 
     @login_required
     async def cogs_cogmanager_cogs(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         current_path = self.path / "templates/cog_pages/cogmanager/cogs.html"
         file = open(str(current_path), 'r')
         html = file.read()
@@ -262,6 +440,11 @@ class WebServer:
 
     @login_required
     async def cogs_cogmanager_paths_action(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         install, core, cogs = await get_paths(self.bot)
         data = {
             "i": install,
@@ -272,6 +455,11 @@ class WebServer:
 
     @login_required
     async def cogs_cogmanager_paths(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         current_path = self.path / "templates/cog_pages/cogmanager/paths.html"
         file = open(str(current_path), 'r')
         html = file.read()
@@ -279,6 +467,11 @@ class WebServer:
 
     @login_required
     async def cogs_cogmanager_add_path_action(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         path = await request.json()
         path = path['path']
         try:
@@ -295,6 +488,11 @@ class WebServer:
 
     @login_required
     async def cogs_cogmanager_add_path(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         current_path = self.path / "templates/cog_pages/cogmanager/add_path.html"
         file = open(str(current_path), 'r')
         html = file.read()
@@ -309,6 +507,11 @@ class WebServer:
 
     @login_required
     async def cogs_admin_announce_action(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         message = await request.json()
         message = message["m"]
         try:
@@ -332,6 +535,11 @@ class WebServer:
 
     @login_required
     async def cogs_admin_announce(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         current_path = self.path / "templates/cog_pages/admin/announce.html"
         file = open(str(current_path), 'r')
         html = file.read()
@@ -339,6 +547,11 @@ class WebServer:
 
     @login_required
     async def cogs_admin_serverlock_action(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         try:
             locked = await serverlock(self.bot)
         except NotLoadedError:
@@ -370,6 +583,11 @@ class WebServer:
 
     @login_required
     async def cogs_admin_serverlock(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 5:
+            return aiohttp.web.HTTPFound('/dashboard')
         current_path = self.path / "templates/cog_pages/admin/serverlock.html"
         file = open(str(current_path), 'r')
         html = file.read()
@@ -384,6 +602,14 @@ class WebServer:
 
     @login_required
     async def cogs_mod_ignore_action(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 3:
+            return web.json_response({"message": "You can't do that"})
+        data = await get_specific_perms(self, request, (await request.json())["thing"])
+        if data < 3:
+            return web.json_response({"message": "You can't use ignore in that guild"})
         data = await request.json()
         mtype = data["type"]
         specifier = data["sp"]
@@ -407,6 +633,11 @@ class WebServer:
 
     @login_required
     async def cogs_mod_ignore(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 3:
+            return aiohttp.web.HTTPFound('/dashboard')
         current_path = self.path / "templates/cog_pages/mod/ignore.html"
         file = open(str(current_path), 'r')
         html = file.read()
@@ -453,6 +684,8 @@ class WebServer:
         self.app.router.add_get("/errors/action", self.errors_action)
         self.app.router.add_get("/login", self.login)
         self.app.router.add_post("/login/action", self.login_action)
+        self.app.router.add_get("/useCode", self.use_code)
+        self.app.router.add_get("/monitor", self.monitor_time)
 
         # Errors
         self.app.router.add_get("/errors", self.errors)

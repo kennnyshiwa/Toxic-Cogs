@@ -163,12 +163,7 @@
                 <option value="guild">Guild</option>
                 <option value="channel">Channel</option>
             </select>
-            <h4>Are you specifying the ID or Name of it? <br />(ID recommended, or the wrong <span class="flux">Guild</span>s could be ignored)</h4>
-            <select id="specifier">
-                <option value="id" id="id">Guild ID</option>
-                <option value="name" id="name">Guild Name</option>
-            </select>
-            <h4>Please input the appropriate ID or Name of the <span class="flux">Guild</span></h4>
+            <h4>Please input the appropriate ID of the <span class="flux">Guild</span></h4>
             <input id="identifier">
             <br />
             <button id="button">Ignore <span class="flux">Guild</span></button>
@@ -186,9 +181,7 @@
                     $(".flux").each(function() {
                         $(this).text(newstr)
                     })
-                    console.log($('#specifier option#id'))
                     $('#specifier option#id').text(newstr + " ID");
-                    $('#specifier option#name').text(newstr + " Name");
                 })
             })
             $("#button").click(function (event) {
@@ -209,7 +202,7 @@
                 };
                 var data = {
                     "type": $("#model").val(),
-                    "sp": $("#specifier").val(),
+                    "sp": "id",
                     "thing": $("#identifier").val()
                 }
                 var data = JSON.stringify(data);

@@ -10,13 +10,14 @@ from .webserver import WebServer
 class Dashboard(commands.Cog):
 
 	__version__ = "0.3.2a"
+	__red__ = "3.0.0"
 
 	def __init__(self, bot):
 		self.bot = bot
 		self.conf = Config.get_conf(self, identifier=473541068378341376)
-		self.conf.register_global(errors=[], command_errors=[], logerrors=False, password="youshallnotpass")
+		self.conf.register_global(errors=[], command_errors=[], logerrors=False, secret="", errorpass=[])
 		self.bot.add_listener(self.error, "on_command_error")
-		self.web = WebServer(bot, self)
+		self.web = WebServer(self.bot, self)
 		self.path = bundled_data_path(self)
 		self.web_task = self.bot.loop.create_task(self.web.make_webserver(self.path))
 
@@ -49,16 +50,24 @@ class Dashboard(commands.Cog):
 		pass
 
 	@checks.is_owner()
+	@dashboard.command()
+	async def restart(self, ctx, wait: int=0):
+		"""Restarts the webserver, kicking everyone offline.
+		
+		Pass a wait argument to make it wait that many seconds before coming back online."""
+		self.__unload()
+		await ctx.send("Stopped the webserver.")
+		await asyncio.sleep(wait)
+		from .webserver import WebServer
+		self.web = WebServer(self.bot, self)
+		self.web_task = self.bot.loop.create_task(self.web.make_webserver(self.path))
+		await ctx.send("Webserver has been restarted.")
+
+	@checks.is_owner()
 	@dashboard.group()
 	async def settings(self, ctx):
 		"""Group command for setting up the web dashboard for this Red bot"""
 		pass
-
-	@settings.command()
-	async def password(self, ctx, *, password: str):
-		"""Set the password required for the dashboard.  Recommended to use in DMs so other users cant figure it out.  This will also log out current users."""
-		await self.conf.password.set(password)
-		await ctx.tick()
 
 	@settings.command()
 	async def logerrors(self, ctx, log: bool):
@@ -67,3 +76,9 @@ class Dashboard(commands.Cog):
 		if log:
 			return await ctx.send("This cog will now log command errors.")
 		await ctx.send("This cog will no longer log command errors.")
+
+	@settings.command()
+	async def secret(self, ctx, *, secret: str):
+		"""Set the client secret needed for Discord Oauth."""
+		await self.conf.secret.set(secret)
+		await ctx.tick()

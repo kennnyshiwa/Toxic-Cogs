@@ -166,6 +166,9 @@
             <p id="long"></p>
         </div>
         <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
+        <!-- Highlight.js -->
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/highlight.min.js"></script>
+        <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.8.0/languages/go.min.js"></script>
         <script>
             var xhr = new XMLHttpRequest();
             var url = "/errors/view/action";
@@ -186,7 +189,11 @@
                     })
                     $("#table tr:last").after("<tr><td>" + json.invoker + "</td><td>" + json.command + "</td><td><span class='link'>" + json.short + "</span></td><td>" + String(json.id))
                     console.log(json.long)
-                    $("#long").html("<pre>" + json.long.replace(/\n/g, "<br />") + "</pre>")
+                    $("#long").html("<pre class='python'><code class='python'>" + json.long.replace(/\n/g, "<br />") + "</code></pre>")
+                    $('pre').each(function(i, block) {
+                        console.log("Got one")
+                        hljs.highlightBlock(block);
+                    });
                 }
             };
             var data = JSON.stringify({"id": localStorage.error_id});
