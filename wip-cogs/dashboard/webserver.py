@@ -160,7 +160,7 @@ class WebServer:
         file = open(str(current_path), 'r')
         html = file.read()
         html = html.replace("{{ id }}", str(self.bot.user.id))
-        html = html.replace("{{ redirect }}", urllib.parse.quote((await self.cog.conf.redirect()) + "/useCode"))
+        html = html.replace("{{ redirect }}", urllib.parse.quote((await self.cog.conf.redirect()) + r"/useCode"))
         return web.Response(text=html, content_type="text/html")
 
     async def home(self, request):
@@ -181,7 +181,7 @@ class WebServer:
             "client_secret": (await self.cog.conf.secret()),
             "grant_type": "authorization_code",
             "code": code,
-            "redirect_uri": "http://localhost:42356/useCode",
+            "redirect_uri": (await self.cog.conf.redirect()) + r"/useCode",
             "scope": "identify"
         }
         headers = {
