@@ -3,7 +3,9 @@
     <head>
         <title>Red - Discord Bot Dashboard</title>
         <link rel="shortcut icon" type="image/png" href="https://i.imgur.com/uJGZl4O.png"/>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
         <style>
             body {
                 margin: 0;
@@ -25,138 +27,10 @@
                 padding-right: 10px;
                 padding-left: 10px;
             }
-            .navbar {
-                overflow: hidden;
-                background-color: #333;
-                position: fixed; /* Set the navbar to fixed position */
-                top: 0; /* Position the navbar at the top of the page */
-                width: 100%; /* Full width */
-            }
-
-            /* Links inside the navbar */
-            .navbar a {
-                float: left;
-                display: block;
-                color: #f2f2f2;
-                text-align: center;
-                padding: 14px 16px;
-                text-decoration: none;
-            }
-
-            /* Change background on mouse-over */
-            .navbar a:hover {
-                background: #ddd;
-                color: black;
-            }
-            /* The Overlay (background) */
-            .overlay {
-                /* Height & width depends on how you want to reveal the overlay (see JS below) */    
-                height: 100%;
-                width: 0;
-                position: fixed; /* Stay in place */
-                z-index: 1; /* Sit on top */
-                left: 0;
-                top: 0;
-                background-color: rgb(0,0,0); /* Black fallback color */
-                background-color: rgba(0,0,0, 0.9); /* Black w/opacity */
-                overflow-x: hidden; /* Disable horizontal scroll */
-                transition: 0.5s; /* 0.5 second transition effect to slide in or slide down the overlay (height or width, depending on reveal) */
-            }
-
-            /* Position the content inside the overlay */
-            .overlay-content {
-                position: relative;
-                top: 10%; /* 25% from the top */
-                width: 100%; /* 100% width */
-                text-align: left; /* Centered text/links */
-                margin-top: 30px; /* 30px top margin to avoid conflict with the close button on smaller screens */
-            }
-
-            /* The navigation links inside the overlay */
-            .overlay a {
-                padding: 5px;
-                text-decoration: none;
-                font-size: 20px;
-                color: #818181;
-                display: block; /* Display block instead of inline */
-                transition: 0.3s; /* Transition effects on hover (color) */
-            }
-
-            /* When you mouse over the navigation links, change their color */
-            .overlay a:hover, .overlay a:focus {
-                color: #f1f1f1;
-            }
-
-            /* Position the close button (top right corner) */
-            .overlay .closebtn {
-                position: absolute;
-                top: 20px;
-                right: 45px;
-                font-size: 60px;
-            }
-
-            .icon {
-                background: black;
-                display: block;
-            }
-
-            #errors {
-                float: right;
-            }
-
-            #errors:hover {
-                background: #ff0000;
-
-            }
-
-            /* When the height of the screen is less than 450 pixels, change the font-size of the links and position the close button again, so they don't overlap */
-            @media screen and (max-height: 450px) {
-                .overlay a {font-size: 20px}
-                .overlay .closebtn {
-                    font-size: 40px;
-                    top: 15px;
-                    right: 35px;
-                }
-            }
         </style>
     </head>
     <body>
-        <div class="navbar">
-            <a onclick="openNav()" class="icon"><i class="fa fa-bars"></i></a>
-            <a href="/dashboard">Main dashboard</a>
-            <a href="/cogs/core">Core</a>
-            <a href="/cogs/cogmanager">Cog Manager UI</a>
-            <a href="/cogs/admin">Admin</a>
-            <a href="/cogs/mod">Mod</a>
-            <a href="/errors" id="errors">Errors</a>
-        </div>
-        <div id="myNav" class="overlay">
-            <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
-            <div class="overlay-content">
-                <a href="/dashboard"><b>Main Dashboard</b></a>
-                <a href="/cogs/core">Core</a>
-                <ul>
-                    <li><a href="/cogs/core/load">Load</a></li>
-                    <li><a href="/cogs/core/unload">Unload</a></li>
-                    <li><a href="/cogs/core/reload">Reload</a></li>
-                </ul>
-                <a href="/cogs/cogmanager">Cog Manager UI</a>
-                <ul>
-                    <li><a href="/cogs/cogmanager/cogs">Cogs</a></li>
-                    <li><a href="/cogs/cogmanager/paths">Paths</a></li>
-                    <li><a href="/cogs/cogmanager/addpath">Addpath</a></li>
-                </ul>
-                <a href="/cogs/admin">Admin</a>
-                <ul>
-                    <li><a href="/cogs/admin/announce">Announce</a></li>
-                    <li><a href="/cogs/admin/serverlock">Serverlock</a></li>
-                </ul>
-                <a href="/cogs/mod">Mod</a>
-                <ul>
-                    <li><a href="/cogs/mod/ignore">Ignore</a></li>
-                </ul>
-            </div>
-        </div>
+        {% include 'includes/navbar.html' %}
         <div class="main">
             <h1 id="loading">Loading...</h1>
             <p id="loaded"></p>

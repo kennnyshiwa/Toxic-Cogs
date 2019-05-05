@@ -1,4 +1,6 @@
 from aiohttp import web
+import aiohttp_jinja2
+import jinja2
 import time
 import aiohttp
 import asyncio
@@ -156,18 +158,12 @@ class WebServer:
 
     @not_login_required
     async def login(self, request):
-        current_path = self.path / "templates/login.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        html = html.replace("{{ id }}", str(self.bot.user.id))
-        html = html.replace("{{ redirect }}", urllib.parse.quote((await self.cog.conf.redirect()) + r"/useCode"))
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("login.html", request, {"redirect": urllib.parse.quote((await self.cog.conf.redirect()) + r"/useCode"), "id": str(self.bot.user.id)})
+        return response
 
     async def home(self, request):
-        current_path = self.path / "templates/index.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("index.html", request, {})
+        return response
 
     @not_login_required
     async def use_code(self, request):
@@ -202,10 +198,8 @@ class WebServer:
 
     @login_required
     async def dashboard(self, request):
-        current_path = self.path / "templates/dashboard.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("dashboard.html", request, {})
+        return response
 
     @login_required
     async def error_remove_action(self, request):
@@ -254,10 +248,8 @@ class WebServer:
         data = await get_permissions(self, request)
         if data < 10:
             return aiohttp.web.HTTPFound('/dashboard')
-        current_path = self.path / "templates/error_view.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("error_view.html", request, {})
+        return response
 
     @login_required
     async def monitor_time(self, request):
@@ -283,10 +275,8 @@ class WebServer:
         data = await get_permissions(self, request)
         if data < 10:
             return aiohttp.web.HTTPFound('/dashboard')
-        current_path = self.path / "templates/errors.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("errors.html", request, {})
+        return response
     
     @login_required
     async def cogs(self, request):
@@ -379,10 +369,8 @@ class WebServer:
             data -= 10
         if data < 5:
             return aiohttp.web.HTTPFound('/dashboard')
-        current_path = self.path / "templates/cog_pages/core/load.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("cog_pages/core/load.html", request, {})
+        return response
 
     @login_required
     async def cogs_core_unload(self, request):
@@ -391,10 +379,8 @@ class WebServer:
             data -= 10
         if data < 5:
             return aiohttp.web.HTTPFound('/dashboard')
-        current_path = self.path / "templates/cog_pages/core/unload.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("cog_pages/core/unload.html", request, {})
+        return response
 
     @login_required
     async def cogs_core_reload(self, request):
@@ -403,17 +389,13 @@ class WebServer:
             data -= 10
         if data < 5:
             return aiohttp.web.HTTPFound('/dashboard')
-        current_path = self.path / "templates/cog_pages/core/reload.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("cog_pages/core/reload.html", request, {})
+        return response
 
     @login_required
     async def cogs_core(self, request):
-        current_path = self.path / "templates/cog_pages/core.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("cog_pages/core.html", request, {})
+        return response
 
     @login_required
     async def cogs_cogmanager_cogs_action(self, request):
@@ -436,10 +418,8 @@ class WebServer:
             data -= 10
         if data < 5:
             return aiohttp.web.HTTPFound('/dashboard')
-        current_path = self.path / "templates/cog_pages/cogmanager/cogs.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("cog_pages/cogmanager/cogs.html", request, {})
+        return response
 
     @login_required
     async def cogs_cogmanager_paths_action(self, request):
@@ -463,10 +443,8 @@ class WebServer:
             data -= 10
         if data < 5:
             return aiohttp.web.HTTPFound('/dashboard')
-        current_path = self.path / "templates/cog_pages/cogmanager/paths.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("cog_pages/cogmanager/paths.html", request, {})
+        return response
 
     @login_required
     async def cogs_cogmanager_add_path_action(self, request):
@@ -496,17 +474,13 @@ class WebServer:
             data -= 10
         if data < 5:
             return aiohttp.web.HTTPFound('/dashboard')
-        current_path = self.path / "templates/cog_pages/cogmanager/add_path.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("cog_pages/cogmanager/add_path.html", request, {})
+        return response
 
     @login_required
     async def cogs_cogmanager(self, request):
-        current_path = self.path / "templates/cog_pages/cogmanager.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("cog_pages/cogmanager.html", request, {})
+        return response
 
     @login_required
     async def cogs_admin_announce_action(self, request):
@@ -543,10 +517,8 @@ class WebServer:
             data -= 10
         if data < 5:
             return aiohttp.web.HTTPFound('/dashboard')
-        current_path = self.path / "templates/cog_pages/admin/announce.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("cog_pages/admin/announce.html", request, {})
+        return response
 
     @login_required
     async def cogs_admin_serverlock_action(self, request):
@@ -591,17 +563,13 @@ class WebServer:
             data -= 10
         if data < 5:
             return aiohttp.web.HTTPFound('/dashboard')
-        current_path = self.path / "templates/cog_pages/admin/serverlock.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("cog_pages/admin/serverlock.html", request, {})
+        return response
 
     @login_required
     async def cogs_admin(self, request):
-        current_path = self.path / "templates/cog_pages/admin.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("cog_pages/admin.html", request, {})
+        return response
 
     @login_required
     async def cogs_mod_ignore_action(self, request):
@@ -641,23 +609,17 @@ class WebServer:
             data -= 10
         if data < 3:
             return aiohttp.web.HTTPFound('/dashboard')
-        current_path = self.path / "templates/cog_pages/mod/ignore.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("cog_pages/mod/ignore.html", request, {})
+        return response
 
     @login_required
     async def cogs_mod(self, request):
-        current_path = self.path / "templates/cog_pages/mod.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("cog_pages/mod.html", request, {})
+        return response
 
     async def _credits(self, request):
-        current_path = self.path / "templates/credits.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template("credits.html", request, {})
+        return response
 
     @web.middleware
     async def error_middleware(self, request, handler):
@@ -725,6 +687,11 @@ class WebServer:
         self.app.router.add_get("/cogs/cogmanager/addpath", self.cogs_cogmanager_add_path)
         self.app.router.add_post("/cogs/cogmanager/addpath/action", self.cogs_cogmanager_add_path_action)
 
+        # Static
+
+        self.app['static_root_url'] = str(self.path / "static")
+        aiohttp_jinja2.setup(self.app,
+            loader=jinja2.FileSystemLoader(str(self.path / "templates")))
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
         self.handler = self.app.make_handler()

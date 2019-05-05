@@ -3,7 +3,9 @@
     <head>
         <title>Red - Discord Bot Dashboard: 404</title>
         <link rel="shortcut icon" type="image/png" href="https://i.imgur.com/uJGZl4O.png"/>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
         <style>
             body {
                 margin: 0;
@@ -25,26 +27,37 @@
                 padding-right: 10px;
                 padding-left: 10px;
             }
-            .navbar {
+            #navbar {
                 overflow: hidden;
                 background-color: #333;
                 position: fixed; /* Set the navbar to fixed position */
                 top: 0; /* Position the navbar at the top of the page */
+                right: 0;
                 width: 100%; /* Full width */
+                z-index: 1;
+                border-radius: 0px;
+                font-size: 16px;
+                border: 0px;
+                margin: 0px;
+                height: 46px !important;
+                box-sizing: content-box;
+                line-height: normal;
+                text-size-adjust: auto;
             }
 
             /* Links inside the navbar */
-            .navbar a {
+            #navbar a {
                 float: left;
                 display: block;
                 color: #f2f2f2;
                 text-align: center;
                 padding: 14px 16px;
                 text-decoration: none;
+                border-radius: 0%;
             }
 
             /* Change background on mouse-over */
-            .navbar a:hover {
+            #navbar a:hover {
                 background: #ddd;
                 color: black;
             }
@@ -101,11 +114,27 @@
             }
 
             #errors {
-                float: right;
+                float: right !important;
             }
 
             #errors:hover {
-                background: #ff0000;
+                background: #ff0000 !important;
+            }
+
+            .navbar-toggler a {
+                color: white;
+            }
+            
+            .navigation {
+                width: 100%;
+            }
+
+            .navbar-toggler {
+                background-color: black;
+            }
+
+            .errors {
+                background-color: red !important;
             }
 
             /* When the height of the screen is less than 450 pixels, change the font-size of the links and position the close button again, so they don't overlap */
@@ -120,40 +149,47 @@
         </style>
     </head>
     <body>
-        <div class="navbar">
-            <a onclick="openNav()" class="icon"><i class="fa fa-bars"></i></a>
-            <a href="/dashboard">Main dashboard</a>
-            <a href="/cogs/core">Core</a>
-            <a href="/cogs/cogmanager">Cog Manager UI</a>
-            <a href="/cogs/admin">Admin</a>
-            <a href="/cogs/mod">Mod</a>
-            <a href="/errors" id="errors">Errors</a>
-        </div>
-        <div id="myNav" class="overlay">
-            <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
-            <div class="overlay-content">
-                <a href="/dashboard"><b>Main Dashboard</b></a>
-                <a href="/cogs/core">Core</a>
-                <ul>
-                    <li><a href="/cogs/core/load">Load</a></li>
-                    <li><a href="/cogs/core/unload">Unload</a></li>
-                    <li><a href="/cogs/core/reload">Reload</a></li>
-                </ul>
-                <a href="/cogs/cogmanager">Cog Manager UI</a>
-                <ul>
-                    <li><a href="/cogs/cogmanager/cogs">Cogs</a></li>
-                    <li><a href="/cogs/cogmanager/paths">Paths</a></li>
-                    <li><a href="/cogs/cogmanager/addpath">Addpath</a></li>
-                </ul>
-                <a href="/cogs/admin">Admin</a>
-                <ul>
-                    <li><a href="/cogs/admin/announce">Announce</a></li>
-                    <li><a href="/cogs/admin/serverlock">Serverlock</a></li>
-                </ul>
-                <a href="/cogs/mod">Mod</a>
-                <ul>
-                    <li><a href="/cogs/mod/ignore">Ignore</a></li>
-                </ul>
+        <div class="navigation">
+            <nav class="navbar navbar-dark bg-dark">
+                <button class="navbar-toggler" onclick="openNav()">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <button class="navbar-toggler"><a href="/dashboard">Main dashboard</a></button>
+                <button class="navbar-toggler"><a href="/cogs/core">Core</a></button>
+                <button class="navbar-toggler"><a href="/cogs/admin">Admin</a></button>
+                <button class="navbar-toggler"><a href="/cogs/alias">Alias</a></button>
+                <button class="navbar-toggler"><a href="/cogs/audio">Audio</a></button>
+                <button class="navbar-toggler"><a href="/cogs/downloader">Downloader</a></button>
+                <button class="navbar-toggler"><a href="/cogs/mod">Mod</a></button>
+                <button class="navbar-toggler"><a href="/cogs/cogmanager">Cog Manager UI</a></button>
+                <button class="navbar-toggler errors"><a href="/errors" id="errors">Errors</a></button>
+            </nav>
+            <div id="myNav" class="overlay">
+                <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+                <div class="overlay-content">
+                    <a href="/dashboard"><b>Main Dashboard</b></a>
+                    <a href="/cogs/core">Core</a>
+                    <ul>
+                        <li><a href="/cogs/core/load">Load</a></li>
+                        <li><a href="/cogs/core/unload">Unload</a></li>
+                        <li><a href="/cogs/core/reload">Reload</a></li>
+                    </ul>
+                    <a href="/cogs/cogmanager">Cog Manager UI</a>
+                    <ul>
+                        <li><a href="/cogs/cogmanager/cogs">Cogs</a></li>
+                        <li><a href="/cogs/cogmanager/paths">Paths</a></li>
+                        <li><a href="/cogs/cogmanager/addpath">Addpath</a></li>
+                    </ul>
+                    <a href="/cogs/admin">Admin</a>
+                    <ul>
+                        <li><a href="/cogs/admin/announce">Announce</a></li>
+                        <li><a href="/cogs/admin/serverlock">Serverlock</a></li>
+                    </ul>
+                    <a href="/cogs/mod">Mod</a>
+                    <ul>
+                        <li><a href="/cogs/mod/ignore">Ignore</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
         <div class="main">
