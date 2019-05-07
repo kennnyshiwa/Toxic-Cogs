@@ -6,9 +6,6 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
         <style>
             body {
                 margin: 0;
@@ -21,6 +18,15 @@
                 padding-right: 10px;
                 padding-left: 10px;
             }
+            table, th, td {
+                border: 1px solid black;
+                margin: 50px;
+            }
+            .link {
+                color: -webkit-link;
+                cursor: pointer;
+                text-decoration: underline;
+            }
         </style>
     </head>
     <body>
@@ -28,13 +34,20 @@
         <div class="main">
             <h1>Errors</h1>
             <p>Command errors that have been caught by this cog.</p>
-            <table style="width: 90%" id="table">
-                <tr>
-                    <th>Invoker</th>
-                    <th>Command</th>
-                    <th>Short error</th>
-                    <th>ID</th>
-                </tr>
+            <table style="width: 90%" id="table" class="table table-bordered table-dark">
+                <thead>
+                    <tr>
+                        <th scope="col">Invoker</th>
+                        <th scope="col">Command</th>
+                        <th scope="col">Short error</th>
+                        <th scope="col">ID</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody">
+                    <tr>
+                        
+                    </tr>
+                </tbody>
             </table>
         </div>
         <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
@@ -54,7 +67,7 @@
                 var json = JSON.parse(xhr.responseText);
                 for (y=0; y < json.data.length; y++) {
                     x = json.data[y]
-                    $("#table tr:last").after("<tr><td>" + x.invoker + "</td><td>" + x.command + "</td><td><span class='link'>" + x.short + "</span></td><td>" + String(x.id))
+                    $("#tbody tr:last").after("<tr><td>" + x.invoker + "</td><td>" + x.command + "</td><td><span class='link'>" + x.short + "</span></td><td>" + String(x.id))
                 }
             };
             try {

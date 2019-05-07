@@ -32,8 +32,8 @@
     <body>
         {% include 'includes/navbar.html' %}
         <div class="main">
-            <h1>Ignore a Discord <span class="flux">Guild</span></h1>
-            <h4>What type are you ignoring?</h4>
+            <h1>Unignore a Discord <span class="flux">Guild</span></h1>
+            <h4>What type are you unignoring?</h4>
             <select id="model" selected="guild">
                 <option value="guild">Guild</option>
                 <option value="channel">Channel</option>
@@ -41,7 +41,7 @@
             <h4>Please input the appropriate ID of the <span class="flux">Guild</span></h4>
             <input id="identifier">
             <br />
-            <button id="button">Ignore <span class="flux">Guild</span></button>
+            <button id="button">Unignore <span class="flux">Guild</span></button>
             <br /><br />
             <p><span id="message">Message: (nothing done yet)</span></p>
         </div>
@@ -61,7 +61,7 @@
             })
             $("#button").click(function (event) {
                 var xhr = new XMLHttpRequest();
-                var url = "/cogs/mod/ignore/action";
+                var url = "/cogs/mod/unignore/action";
                 xhr.open("POST", url, true);
                 xhr.setRequestHeader("Content-Type", "application/json");
                 xhr.onreadystatechange = function () {
@@ -94,17 +94,6 @@
                     }
                 });
             });
-        </script>
-        <script>
-            /* Open when someone clicks on the span element */
-            function openNav() {
-                document.getElementById("myNav").style.width = "15%";
-            }
-
-            /* Close when someone clicks on the "x" symbol inside the overlay */
-            function closeNav() {
-                document.getElementById("myNav").style.width = "0%";
-            }
         </script>
     </body>
 </html>

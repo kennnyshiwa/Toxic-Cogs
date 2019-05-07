@@ -1,0 +1,76 @@
+{
+    "core": {
+        "cards": [
+            [
+                {
+                    "name": "Load",
+                    "desc": "Loads packages",
+                    "link": "/cogs/core/load"
+                },
+                {
+                    "name": "Unload",
+                    "desc": "Unloads packages",
+                    "link": "/cogs/core/unload"
+                },
+                {
+                    "name": "Reload",
+                    "desc": "Reloads packages",
+                    "link": "/cogs/core/reload"
+                }
+            ]
+        ]
+    },
+    "cogmanager": {
+        "cards": [
+            [
+                {
+                    "name": "Cogs",
+                    "desc": "Lists all loaded and available cogs.",
+                    "link": "/cogs/cogmanager/cogs"
+                },
+                {
+                    "name": "Paths",
+                    "desc": "Lists current cog paths in order of priority.",
+                    "link": "/cogs/cogmanager/paths"
+                },
+                {
+                    "name": "Add Path",
+                    "desc": "Add a path to the list of available cog paths.",
+                    "link": "/cogs/cogmanager/addpath"
+                }
+            ]
+        ]
+    },
+    "admin": {
+        "cards": [
+            [
+                {
+                    "name": "Announce",
+                    "desc": "Announce a message to all servers the bot is in.",
+                    "link": "/cogs/admin/announce"
+                },
+                {
+                    "name": "Serverlock",
+                    "desc": "Lock a bot to its current servers only.",
+                    "link": "/cogs/admin/serverlock"
+                }
+            ]
+        ]
+    },
+    "mod": {
+        "cards": [
+            [
+                {
+                    "name": "Ignore",
+                    "desc": "Add servers or channels to the ignore list.",
+                    "link": "/cogs/mod/ignore"
+                },
+                {
+                    "name": "Unignore",
+                    "desc": "Remove servers or channels from the ignore list.",
+                    "link": "/cogs/mod/unignore"
+                }
+            ]
+        ]
+    }
+}

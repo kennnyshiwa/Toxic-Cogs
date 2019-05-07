@@ -6,42 +6,27 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
         <style>
             body {
                 margin: 0;
                 font-family: sans-serif;
+                background-color: black;
+                color: white;
             }
             .main {
                 margin-top: 50px;
             }
+            .container {
+                margin-top: 50px;
+            }
             h1 {
-                padding-right: 10px;
-                padding-left: 10px;
+                text-align: center;
             }
         </style>
     </head>
     <body>
         {% include 'includes/navbar.html' %}
-        <div class="main">
-            <h1>Admin</h1>
-            <ul>
-                <li><a href="/cogs/admin/announce">Send an announcement</a></li>
-                <li><a href="/cogs/admin/serverlock">Serverlock</a></li>
-            </ul>
-        </div>
-        <script>
-            /* Open when someone clicks on the span element */
-            function openNav() {
-                document.getElementById("myNav").style.width = "15%";
-            }
-
-            /* Close when someone clicks on the "x" symbol inside the overlay */
-            function closeNav() {
-                document.getElementById("myNav").style.width = "0%";
-            }
-        </script>
+        <h1><u>Admin commands</u></h1>
+        {% extends 'includes/basecog.html' %}
     </body>
 </html>

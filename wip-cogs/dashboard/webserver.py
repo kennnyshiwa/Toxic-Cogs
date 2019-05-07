@@ -8,11 +8,12 @@ import random
 import base64
 import discord
 import urllib
+import json
 from cryptography import fernet
 from aiohttp_session import setup, get_session, session_middleware
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 
-from .data.cogs.mod import ignore
+from .data.cogs.mod import ignore, unignore
 from .data.cogs.core import load_cog, unload_cog
 from .data.cogs.admin import announce, serverlock
 from .data.cogs.cogmanager import get_cogs, get_paths, add_path
@@ -144,6 +145,12 @@ class WebServer:
     def unload(self):
         self.bot.loop.create_task(self.runner.cleanup())
         self.session.detach()
+
+    def get_context(self, cog):
+        with open(str(self.path / "cogs/cards.json"), "r") as read_file:
+            data = json.load(read_file)
+        return data[cog]
+
 
     @not_login_required
     async def login_action(self, request):
@@ -394,7 +401,8 @@ class WebServer:
 
     @login_required
     async def cogs_core(self, request):
-        response = aiohttp_jinja2.render_template("cog_pages/core.html", request, {})
+        context = self.get_context("core")
+        response = aiohttp_jinja2.render_template("cog_pages/core.html", request, context)
         return response
 
     @login_required
@@ -479,7 +487,8 @@ class WebServer:
 
     @login_required
     async def cogs_cogmanager(self, request):
-        response = aiohttp_jinja2.render_template("cog_pages/cogmanager.html", request, {})
+        context = self.get_context("cogmanager")
+        response = aiohttp_jinja2.render_template("cog_pages/cogmanager.html", request, context)
         return response
 
     @login_required
@@ -568,8 +577,40 @@ class WebServer:
 
     @login_required
     async def cogs_admin(self, request):
-        response = aiohttp_jinja2.render_template("cog_pages/admin.html", request, {})
+        context = self.get_context("admin")
+        response = aiohttp_jinja2.render_template("cog_pages/admin.html", request, context)
         return response
+
+    @login_required
+    async def cogs_mod_unignore_action(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 3:
+            return web.json_response({"message": "You can't do that"})
+        data = await get_specific_perms(self, request, (await request.json())["thing"])
+        if data < 3:
+            return web.json_response({"message": "You can't use ignore in that guild"})
+        data = await request.json()
+        mtype = data["type"]
+        specifier = data["sp"]
+        identifier = data["thing"]
+        try:
+            ignored = await unignore(self.bot, mtype, specifier, identifier)
+        except Exception as e:
+            data = {
+                "message": str(e)
+            }
+        else:
+            if ignored:
+                data = {
+                    "message": "Now unignored."
+                }
+            else:
+                data = {
+                    "message": f"This {mtype} was already unignored."
+                }
+        return web.json_response(data)
 
     @login_required
     async def cogs_mod_ignore_action(self, request):
@@ -603,6 +644,16 @@ class WebServer:
         return web.json_response(data)
 
     @login_required
+    async def cogs_mod_unignore(self, request):
+        data = await get_permissions(self, request)
+        if data > 10:
+            data -= 10
+        if data < 3:
+            return aiohttp.web.HTTPFound('/dashboard')
+        response = aiohttp_jinja2.render_template("cog_pages/mod/unignore.html", request, {})
+        return response
+
+    @login_required
     async def cogs_mod_ignore(self, request):
         data = await get_permissions(self, request)
         if data > 10:
@@ -614,7 +665,8 @@ class WebServer:
 
     @login_required
     async def cogs_mod(self, request):
-        response = aiohttp_jinja2.render_template("cog_pages/mod.html", request, {})
+        context = self.get_context("mod")
+        response = aiohttp_jinja2.render_template("cog_pages/mod.html", request, context)
         return response
 
     async def _credits(self, request):
@@ -662,6 +714,8 @@ class WebServer:
         self.app.router.add_get("/cogs/mod", self.cogs_mod)
         self.app.router.add_get("/cogs/mod/ignore", self.cogs_mod_ignore)
         self.app.router.add_post("/cogs/mod/ignore/action", self.cogs_mod_ignore_action)
+        self.app.router.add_get("/cogs/mod/unignore", self.cogs_mod_unignore)
+        self.app.router.add_post("/cogs/mod/unignore/action", self.cogs_mod_unignore_action)
 
         # Core
         self.app.router.add_get("/cogs/core", self.cogs_core)
