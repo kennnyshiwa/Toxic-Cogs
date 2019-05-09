@@ -5,8 +5,10 @@ Hey there, thanks for looking at my dashboard!  This cog allows for you (the own
 ### Inital installation
 First, if you haven't already, add my repo:
 > `[p]repo add toxic https://github.com/NeuroAssassin/Toxic-Cogs`
+
 Next, install the cog:
 > `[p]cog install toxic dashboard`
+
 Finally, load the cog:
 > `[p]load dashboard`
 ****
@@ -28,7 +30,7 @@ Next, copy the redirect URI you just put into the field, and head over to the da
 #### Client Secret
 Head over [here](https://discordapp.com/developers/applications/) to the DIscord Developer Console, and click on your bot's application.  Just like with the Redirect URI, this must be the same bot.  Next, head over to the right of the page and click on "Copy" under the Client Secret, NOT the Client ID.  Finally, head over to Discord and type the following command, replacing `<secret>` with your client secret:
 > `[p]dashboard settings secret <secret>`
-****
+
 After that, you should be good to go!  In your web browser, open the link you put into the redirect URI earlier (minus the `/useCode`) and it should show you the welcome page.  Enjoy!
 ****
 ## Configuration and Other Details
