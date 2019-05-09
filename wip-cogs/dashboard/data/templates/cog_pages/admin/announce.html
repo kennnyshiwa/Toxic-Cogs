@@ -35,12 +35,13 @@
         </style>
     </head>
     <body>
+        {% include 'includes/forbpopup.html' %}
         {% include 'includes/navbar.html' %}
         <div class="main">
             <h1>Enter the message below</h1>
             <textarea id="message" maxlength=2000 cols=100 rows=10 wrap="hard"></textarea>
             <br />
-            <button id="button">Announce</button>
+            <button id="button" {% if not can %} disabled {% endif %}>Announce</button>
             <br /><br />
             <p><span id="response">Response: (nothing announced yet)</span></p>
         </div>
@@ -53,12 +54,9 @@
                 xhr.setRequestHeader("Content-Type", "application/json");
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState !== 4) { return }
-                    /*
-                    if (xhr.status === 409) {
-                        console.log("409")
-                        return
+                    if (xhr.status === 403) {
+                        $('#exampleModal').modal("show")
                     }
-                    */
                     var json = JSON.parse(xhr.responseText);
                     if (json.success) {
                         string = "Broadcasted announcement"
@@ -71,6 +69,9 @@
                     }
                     $("#response").text("Response: " + string)
                 };
+                if ($("#message").val() === "") {
+                    return
+                }
                 var data = JSON.stringify({"m": $("#message").val()});
                 try {
                     xhr.send(data);

@@ -1,0 +1,61 @@
+<script src="https://code.jquery.com/jquery-2.1.0.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+<style>
+    #toast {
+        background-color: white;
+        border: 1px solid red;
+        color: black;
+        position: fixed !important;
+        transform: translate(-50%, 0px);
+        top: 80% !important;
+        z-index: 5;
+        width: 300px;
+        left: 85%;
+    }
+</style>
+<div class="toast" style="position: absolute; top: 0; right: 0;" data-autohide="false" id="toast">
+    <div class="toast-header">
+    <strong class="mr-auto"><i class="fa fa-exclamation-triangle"></i> Error detecter <i class="fa fa-exclamation-triangle"></i></strong>
+    <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+    </button>
+    </div>
+    <div class="toast-body">
+        <span id="counter">0</span> new errors have been encountered.
+    </div>
+</div>
+<script>
+    $('.toast').toast('hide');
+    var counter = 0
+    var last = false
+    function check() {
+        var xhr = new XMLHttpRequest();
+        var url = "/errors/action";
+        xhr.open("GET", url, true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.onreadystatechange = function () {
+            if (xhr.readyState !== 4) { return }
+            var json = JSON.parse(xhr.responseText);
+            if (!last) {
+                last = json.data.length
+                counter = json.data.length
+            } else {
+                if (counter < json.data.length) {
+                    counter = json.data.length
+                    $("#counter").text(counter - last)
+                    $('.toast').toast('show');
+                }
+            }
+        };
+        try {
+            xhr.send()
+        } catch(error) {
+            //console.log(error)
+        }
+    }
+
+    check()
+    setInterval(function() {
+        check()
+    }, 5000)
+</script>

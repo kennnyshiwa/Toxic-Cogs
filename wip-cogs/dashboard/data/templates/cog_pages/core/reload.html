@@ -5,6 +5,7 @@
         <link rel="shortcut icon" type="image/png" href="https://i.imgur.com/uJGZl4O.png"/>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
         <style>
             body {
@@ -30,17 +31,17 @@
         </style>
     </head>
     <body>
+        {% include 'includes/forbpopup.html' %}
         {% include 'includes/navbar.html' %}
         <div class="main">
             <h1>Enter the cog name below</h1>
             <input id="cog">
             <br />
-            <button id="button">Reload cog</button>
+            <button id="button" {% if not can %} disabled {% endif %}>Reload cog</button>
             <br /><br />
             <p>Unloading:<br /><span id="uresponse">Response: 0 (nothing unloaded yet)</span><br /><span id="umessage">Message: (nothing unloaded yet)</span></p><br />
             <p>Loading:<br /><span id="lresponse">Response: 0 (nothing loaded yet)</span><br /><span id="lmessage">Message: (nothing loaded yet)</span></p>
         </div>
-        <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
         <script>
             $("#button").click(function (event) {
                 var xhr = new XMLHttpRequest();
@@ -49,12 +50,9 @@
                 xhr.setRequestHeader("Content-Type", "application/json");
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState !== 4) { return }
-                    /*
-                    if (xhr.status === 409) {
-                        console.log("409")
-                        return
+                    if (xhr.status === 403) {
+                        $('#exampleModal').modal("show")
                     }
-                    */
                     var json = JSON.parse(xhr.responseText);
                     $("#uresponse").text("Response: " + json.code)
                     $("#umessage").text("Message: " + json.message)
@@ -71,12 +69,9 @@
                 lhr.setRequestHeader("Content-Type", "application/json");
                 lhr.onreadystatechange = function () {
                     if (lhr.readyState !== 4) { return }
-                    /*
-                    if (xhr.status === 409) {
-                        console.log("409")
-                        return
+                    if (xhr.status === 403) {
+                        $('#exampleModal').modal("show")
                     }
-                    */
                     var json = JSON.parse(lhr.responseText);
                     $("#lresponse").text("Response: " + json.code)
                     $("#lmessage").text("Message: " + json.message)

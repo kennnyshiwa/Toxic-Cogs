@@ -5,6 +5,7 @@
         <link rel="shortcut icon" type="image/png" href="https://i.imgur.com/uJGZl4O.png"/>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
         <style>
             body {
@@ -30,6 +31,7 @@
         </style>
     </head>
     <body>
+        {% include 'includes/forbpopup.html' %}
         {% include 'includes/navbar.html' %}
         <div class="main">
             <h1>Unignore a Discord <span class="flux">Guild</span></h1>
@@ -41,11 +43,10 @@
             <h4>Please input the appropriate ID of the <span class="flux">Guild</span></h4>
             <input id="identifier">
             <br />
-            <button id="button">Unignore <span class="flux">Guild</span></button>
+            <button id="button" {% if not can %} disabled {% endif %}>Unignore <span class="flux">Guild</span></button>
             <br /><br />
             <p><span id="message">Message: (nothing done yet)</span></p>
         </div>
-        <script src="http://code.jquery.com/jquery-2.1.0.js"></script>
         <script>
             $("#model").change(function() {
                 $("#model option:selected").each(function() {
@@ -66,12 +67,10 @@
                 xhr.setRequestHeader("Content-Type", "application/json");
                 xhr.onreadystatechange = function () {
                     if (xhr.readyState !== 4) { return }
-                    /*
-                    if (xhr.status === 409) {
-                        console.log("409")
-                        return
+                    if (xhr.status === 403) {
+                        $('#exampleModal').modal("show")
+                        $("#message").text("Message: You aren't allowed to ignore that.")
                     }
-                    */
                     var json = JSON.parse(xhr.responseText);
                     $("#message").text("Message: " + json.message)
                 };

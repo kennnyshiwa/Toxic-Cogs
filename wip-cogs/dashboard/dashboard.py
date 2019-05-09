@@ -15,7 +15,7 @@ class Dashboard(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 		self.conf = Config.get_conf(self, identifier=473541068378341376)
-		self.conf.register_global(errors=[], command_errors=[], logerrors=False, secret="", errorpass=[], redirect="http://localhost:42356")
+		self.conf.register_global(errors=[], command_errors=[], logerrors=False, secret="", errorpass=[], redirect="http://localhost:42356", owner_perm=15, port=42356)
 		self.bot.add_listener(self.error, "on_command_error")
 		self.web = WebServer(self.bot, self)
 		self.path = bundled_data_path(self)
@@ -71,7 +71,7 @@ class Dashboard(commands.Cog):
 
 	@settings.command()
 	async def logerrors(self, ctx, log: bool):
-		"""Log errors in the bot to display on the dashboard"""
+		"""Log errors in the bot to display on the dashboard."""
 		await self.conf.logerrors.set(log)
 		if log:
 			return await ctx.send("This cog will now log command errors.")
@@ -85,6 +85,37 @@ class Dashboard(commands.Cog):
 
 	@settings.command()
 	async def redirect(self, ctx, redirect: str):
-		"""Set the redirect for after logging in via Discord OAuth"""
+		"""Set the redirect for after logging in via Discord OAuth."""
 		await self.conf.redirect.set(redirect)
 		await ctx.tick()
+
+	@settings.command()
+	async def port(self, ctx, port: int):
+		"""Sets the port for the webserver to be run on.
+		
+		You will need to reload the cog for changes to take effect."""
+		if (port < 1) or (port > 65535):
+			return await ctx.send("Invalid port number.  The port must be between 1 and 65535.") 
+		await self.conf.port.set(port)
+		await ctx.send(f"Port set.  Please run `{ctx.prefix}dashboard restart` for the change to take effect.")
+
+	@settings.command()
+	async def view(self, ctx):
+		"""View the current dashboard settings."""
+		embed = discord.Embed(title="Red V3 Dashboard Settings", color=0x0000ff)
+		log = await self.conf.logerrors()
+		if ctx.guild:
+			secret = "[REDACTED]"
+		else:
+			secret = await self.conf.secret()
+		redirect = await self.conf.redirect()
+		port = await self.conf.port()
+		description = (
+			f"Error logging enabled: |  {log}\n"
+			f"Client Secret:         |  {secret}\n"
+			f"Redirect URI:          |  {redirect}\n"
+			f"Port Number:           |  {port}"
+		)
+		embed.description = "```py\n" + description + "```"
+		embed.set_footer(text="Dashboard created by Neuro Assassin")
+		await ctx.send(embed=embed)
