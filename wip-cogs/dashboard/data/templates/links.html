@@ -36,18 +36,14 @@
     <body>
         {% include 'includes/mainnavbar.html' %}
         <div class="jumbotron">
-            <h1 class="display-4">{{ name }}</h1>
+            <h1 class="display-4">{{ name }}'s Links</h1>
             <hr class="my-4">
-            <p>{{ name }} is an instance of Red - Discord Bot, a multifunctional Discord bot that's made to be configurable for everything you want.</p>
-            {% if info %}
-                <h3>About {{ name }}</h3>
-                <p>{{ info }}</p>
+            <h3>Invite link</h3>
+            <p>Want to invite {{ name }}?  Click <a href="{{ invite }}">here</a> to invite them to your server!</p>
+            {% if support %}
+                <h3>Support server</h3>
+                <p>Found an issue or a bug?  Want to suggest something?  Join the support server <a href="{{ support }}">here</a> to report it.</p>
             {% endif %}
         </div>
-        {% for wid in widgets %}
-            <div class="jumbotron">
-                {{ wid|safe }}
-            </div>
-        {% endfor %}
     </body>
 </html>

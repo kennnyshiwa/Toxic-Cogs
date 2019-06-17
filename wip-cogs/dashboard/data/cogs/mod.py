@@ -1,5 +1,6 @@
 from .exceptions import InvalidModel, NotLoadedError, HackedError
 
+
 async def ignore(bot, mtype, specifier, identifier):
     cog = bot.get_cog("Mod")
     if not cog:
@@ -15,7 +16,9 @@ async def ignore(bot, mtype, specifier, identifier):
         else:
             raise HackedError("You hacked the options")
         if not channel:
-            raise InvalidModel(f"{mtype} with the identifier {identifier} did not find any {mtype}s with the same {specifier}")
+            raise InvalidModel(
+                f"{mtype} with the identifier {identifier} did not find any {mtype}s with the same {specifier}"
+            )
         if not await cog.settings.channel(channel).ignored():
             await cog.settings.channel(channel).ignored.set(True)
             return True
@@ -32,7 +35,9 @@ async def ignore(bot, mtype, specifier, identifier):
         else:
             raise HackedError("You hacked the options")
         if not guild:
-            raise InvalidModel(f"{mtype} with the identifier {identifier} did not find any {mtype}s with the same {specifier}")
+            raise InvalidModel(
+                f"{mtype} with the identifier {identifier} did not find any {mtype}s with the same {specifier}"
+            )
         if not await cog.settings.guild(guild).ignored():
             await cog.settings.guild(guild).ignored.set(True)
             return True
@@ -40,6 +45,7 @@ async def ignore(bot, mtype, specifier, identifier):
             return False
     else:
         raise HackedError("You hacked the options")
+
 
 async def unignore(bot, mtype, specifier, identifier):
     cog = bot.get_cog("Mod")
@@ -56,7 +62,9 @@ async def unignore(bot, mtype, specifier, identifier):
         else:
             raise HackedError("You hacked the options")
         if not channel:
-            raise InvalidModel(f"{mtype} with the identifier {identifier} did not find any {mtype}s with the same {specifier}")
+            raise InvalidModel(
+                f"{mtype} with the identifier {identifier} did not find any {mtype}s with the same {specifier}"
+            )
         if await cog.settings.channel(channel).ignored():
             await cog.settings.channel(channel).ignored.set(False)
             return True
@@ -73,7 +81,9 @@ async def unignore(bot, mtype, specifier, identifier):
         else:
             raise HackedError("You hacked the options")
         if not guild:
-            raise InvalidModel(f"{mtype} with the identifier {identifier} did not find any {mtype}s with the same {specifier}")
+            raise InvalidModel(
+                f"{mtype} with the identifier {identifier} did not find any {mtype}s with the same {specifier}"
+            )
         if await cog.settings.guild(guild).ignored():
             await cog.settings.guild(guild).ignored.set(False)
             return True

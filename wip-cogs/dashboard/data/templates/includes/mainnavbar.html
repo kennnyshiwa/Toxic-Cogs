@@ -1,0 +1,39 @@
+<style>
+	#navbar {
+		overflow: hidden;
+		background-color: #333;
+		position: fixed; /* Set the navbar to fixed position */
+		top: 0; /* Position the navbar at the top of the page */
+		right: 0;
+		width: 100%; /* Full width */
+		z-index: 1;
+		border-radius: 0px;
+		font-size: 16px;
+		border: 0px;
+		margin: 0px;
+		height: 46px !important;
+		box-sizing: content-box;
+		line-height: normal;
+		text-size-adjust: auto;
+	}
+</style>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <span class="navbar-brand">{{ name }} Dashboard</span>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+	<span class="navbar-toggler-icon"></span>
+  </button>
+
+	<div class="collapse navbar-collapse" id="navbarSupportedContent">
+		<ul class="navbar-nav mr-auto">
+			<li class="nav-item active">
+			  <a class="nav-link" href="/">Home <span class="sr-only">(current)</span></a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="/links">Links</a>
+			</li>
+			<li class="nav-item">
+				<a class="nav-link" href="/dashboard">Dashboard</a>
+			</li>
+		</ul>
+	</div>
+</nav>

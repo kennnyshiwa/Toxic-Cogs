@@ -3,9 +3,11 @@ from redbot.cogs.admin.announcer import Announcer
 
 # Fake context for announcing
 
+
 class FakeContextAnnouncer:
     def __init__(self, bot):
         self.bot = bot
+
 
 async def announce(bot, message):
     cog = bot.get_cog("Admin")
@@ -18,6 +20,7 @@ async def announce(bot, message):
         return True
     else:
         return False
+
 
 async def serverlock(bot):
     cog = bot.get_cog("Admin")

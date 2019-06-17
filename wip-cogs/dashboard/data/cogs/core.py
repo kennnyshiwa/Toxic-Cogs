@@ -1,6 +1,7 @@
 from redbot.core import errors
 from .exceptions import LoadedError, LocationError, LoadingError, NotLoadedError
 
+
 async def load_cog(bot, cog):
     core = bot.get_cog("Core")
     try:
@@ -9,7 +10,7 @@ async def load_cog(bot, cog):
             pass
         else:
             raise LocationError("Could not locate cog")
-    except Exception as e:
+    except Exception:
         raise LocationError("Issue when locating cog")
 
     try:
@@ -24,6 +25,7 @@ async def load_cog(bot, cog):
     else:
         await bot.add_loaded_package(cog)
         return True
+
 
 async def unload_cog(bot, cog):
     if cog in bot.extensions:

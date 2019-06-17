@@ -3,14 +3,12 @@ import aiohttp_jinja2
 import jinja2
 import time
 import aiohttp
-import asyncio
-import random
 import base64
 import discord
 import urllib
 import json
 from cryptography import fernet
-from aiohttp_session import setup, get_session, session_middleware
+from aiohttp_session import get_session, session_middleware
 from aiohttp_session.cookie_storage import EncryptedCookieStorage
 
 from .data.cogs.mod import ignore, unignore
@@ -18,27 +16,28 @@ from .data.cogs.core import load_cog, unload_cog
 from .data.cogs.admin import announce, serverlock
 from .data.cogs.cogmanager import get_cogs, get_paths, add_path
 
-from .data.cogs.exceptions import LoadedError, LocationError, LoadingError, NotLoadedError, HackedError, InvalidModel
+from .data.cogs.exceptions import LoadedError, LocationError, LoadingError, NotLoadedError
+
 
 def not_login_required(fn):
     async def wrapped(cls, request, *args, **kwargs):
-        app = request.app
-        router = app.router
         session = await get_session(request)
-        if 'user_id' in session:
+        if "user_id" in session:
             return web.HTTPFound("/dashboard")
         return await fn(cls, request, *args, **kwargs)
+
     return wrapped
+
 
 def login_required(fn):
     async def wrapped(cls, request, *args, **kwargs):
-        app = request.app
-        router = app.router
         session = await get_session(request)
-        if 'user_id' not in session:
+        if "user_id" not in session:
             return web.HTTPFound("/login")
         return await fn(cls, request, *args, **kwargs)
+
     return wrapped
+
 
 """
 Permissions are given via integer number, and their highest one across all mutual guilds.
@@ -53,11 +52,16 @@ For example, if they are admin in one, but a normal user in another, they still 
 1_ => Error pass
 """
 
+
 async def get_permissions(cls, request):
     session = await get_session(request)
     user_id = int(session["user_id"])
-    if await cls.bot.is_owner(await cls.bot.get_user_info(user_id)):
-        return await cls.cog.conf.owner_perm()
+    try:
+        if await cls.bot.is_owner(await cls.bot.get_user_info(user_id)):
+            return await cls.cog.conf.owner_perm()
+    except AttributeError:
+        if await cls.bot.is_owner(await cls.bot.fetch_user(user_id)):
+            return await cls.cog.conf.owner_perm()
     perm = 0
     if str(user_id) in (await cls.cog.conf.errorpass()):
         perm += 10
@@ -87,15 +91,22 @@ async def get_permissions(cls, request):
 
     return perm + 1
 
+
 """
 Basically the same as the above, but uses a specific guild/channel and checks permissions
 Follows the same integers as above
 """
+
+
 async def get_specific_perms(cls, request, mobject):
     session = await get_session(request)
     user_id = int(session["user_id"])
-    if await cls.bot.is_owner(await cls.bot.get_user_info(user_id)):
-        return await cls.cog.conf.owner_perm()
+    try:
+        if await cls.bot.is_owner(await cls.bot.get_user_info(user_id)):
+            return await cls.cog.conf.owner_perm()
+    except AttributeError:
+        if await cls.bot.is_owner(await cls.bot.fetch_user(user_id)):
+            return await cls.cog.conf.owner_perm()
     mobject = int(mobject)
     thing = cls.bot.get_guild(mobject)
     if not thing:
@@ -126,13 +137,18 @@ async def get_specific_perms(cls, request, mobject):
         if role in [mrole.id for mrole in member.roles]:
             return 2
         return 1
-        
+
 
 class WebServer:
     def __init__(self, bot, cog):
         fernet_key = fernet.Fernet.generate_key()
         secret_key = base64.urlsafe_b64decode(fernet_key)
-        self.app = web.Application(middlewares=[self.error_middleware, session_middleware(EncryptedCookieStorage(secret_key))])
+        self.app = web.Application(
+            middlewares=[
+                self.error_middleware,
+                session_middleware(EncryptedCookieStorage(secret_key)),
+            ]
+        )
         self.bot = bot
         self.port = 42356
         self.handler = None
@@ -151,25 +167,31 @@ class WebServer:
             data = json.load(read_file)
         return data[cog]
 
-
-    @not_login_required
-    async def login_action(self, request):
-        session = await get_session(request)
-        password = await self.cog.conf.password()
-        given = (await request.json())["pass"]
-        if given == password:
-            session["password"] = password
-            return web.json_response({"response": "Logged in"})
-        else:
-            return web.json_response({"response": "Failed to log in"})
-
     @not_login_required
     async def login(self, request):
-        response = aiohttp_jinja2.render_template("login.html", request, {"redirect": urllib.parse.quote((await self.cog.conf.redirect())), "id": str(self.bot.user.id)})
+        response = aiohttp_jinja2.render_template(
+            "login.html",
+            request,
+            {
+                "redirect": urllib.parse.quote((await self.cog.conf.redirect())),
+                "id": str(self.bot.user.id),
+            },
+        )
         return response
 
     async def home(self, request):
-        response = aiohttp_jinja2.render_template("index.html", request, {})
+        # Backwards compatibility included
+        try:
+            info = await self.cog.bot.db.custom_info()
+        except AttributeError:
+            info = ""
+        if not info:
+            info = ""
+        name = self.cog.bot.user.name
+        widgets = await self.cog.conf.widgets()
+        response = aiohttp_jinja2.render_template(
+            "index.html", request, {"info": info, "name": name, "widgets": widgets}
+        )
         return response
 
     @not_login_required
@@ -185,22 +207,24 @@ class WebServer:
             "grant_type": "authorization_code",
             "code": code,
             "redirect_uri": redirect,
-            "scope": "identify"
+            "scope": "identify",
         }
-        headers = {
-            'Content-Type': 'application/x-www-form-urlencoded'
-        }
-        response = await self.session.post("https://discordapp.com/api/v6/oauth2/token", data=data, headers=headers)
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        response = await self.session.post(
+            "https://discordapp.com/api/v6/oauth2/token", data=data, headers=headers
+        )
         try:
             token = (await response.json())["access_token"]
         except KeyError:
             return web.json_response(await response.json())
-        new = await self.session.get("https://discordapp.com/api/v6/users/@me", headers={"Authorization": f"Bearer {token}"})
+        new = await self.session.get(
+            "https://discordapp.com/api/v6/users/@me", headers={"Authorization": f"Bearer {token}"}
+        )
         new_data = await new.json()
         if "id" in new_data:
             session = await get_session(request)
             session["user_id"] = new_data["id"]
-            return aiohttp.web.HTTPFound('/dashboard')
+            return aiohttp.web.HTTPFound("/dashboard")
         return web.json_response(await new.json())
 
     @login_required
@@ -213,7 +237,7 @@ class WebServer:
         _id = int((await request.json())["id"])
         data = await get_permissions(self, request)
         if data < 10:
-            return aiohttp.web.HTTPFound('/dashboard')
+            return aiohttp.web.HTTPFound("/dashboard")
         removed = False
         async with self.cog.conf.command_errors() as c:
             for e in c:
@@ -229,7 +253,7 @@ class WebServer:
         _id = int((await request.json())["id"])
         data = await get_permissions(self, request)
         if data < 10:
-            return aiohttp.web.HTTPFound('/dashboard')
+            return aiohttp.web.HTTPFound("/dashboard")
         selection = None
         async with self.cog.conf.command_errors() as c:
             for e in c:
@@ -242,19 +266,17 @@ class WebServer:
                 "invoker": selection["invoker"],
                 "command": selection["command"],
                 "long": selection["error"],
-                "short": selection["short"]
+                "short": selection["short"],
             }
         else:
-            data = {
-                "success": False
-            }
-        return web.json_response(data)        
+            data = {"success": False}
+        return web.json_response(data)
 
     @login_required
     async def error_view(self, request):
         data = await get_permissions(self, request)
         if data < 10:
-            return aiohttp.web.HTTPFound('/dashboard')
+            return aiohttp.web.HTTPFound("/dashboard")
         response = aiohttp_jinja2.render_template("error_view.html", request, {})
         return response
 
@@ -263,17 +285,14 @@ class WebServer:
         t = time.time()
         data = await get_permissions(self, request)
         e = time.time()
-        returning = {
-            "perm": data,
-            "time": e - t
-        }
+        returning = {"perm": data, "time": e - t}
         return web.json_response(returning)
 
     @login_required
     async def errors_action(self, request):
         data = await get_permissions(self, request)
         if data < 10:
-            return aiohttp.web.HTTPFound('/dashboard')
+            return aiohttp.web.HTTPFound("/dashboard")
         c = await self.cog.conf.command_errors()
         return web.json_response({"data": c})
 
@@ -281,13 +300,13 @@ class WebServer:
     async def errors(self, request):
         data = await get_permissions(self, request)
         if data < 10:
-            return aiohttp.web.HTTPFound('/dashboard')
+            return aiohttp.web.HTTPFound("/dashboard")
         response = aiohttp_jinja2.render_template("errors.html", request, {})
         return response
-    
+
     @login_required
     async def cogs(self, request):
-        return aiohttp.web.HTTPFound('/dashboard')
+        return aiohttp.web.HTTPFound("/dashboard")
 
     @login_required
     async def cogs_core_unload_action(self, request):
@@ -297,31 +316,19 @@ class WebServer:
         if data < 5:
             return web.json_response(status=403)
         if request.method != "POST":
-            data = {
-                "code": 405,
-                "message": "Invalid method"
-            }
+            data = {"code": 405, "message": "Invalid method"}
             return web.json_response(data, status=data["code"], reason=data["message"])
         cog = await request.json()
-        cog = cog['cog']
+        cog = cog["cog"]
         try:
             success = await unload_cog(self.bot, cog)
         except NotLoadedError:
-            data = {
-                "code": 400,
-                "message": "That cog is not loaded."
-            }
+            data = {"code": 400, "message": "That cog is not loaded."}
         else:
             if success:
-                data = {
-                    "code": 200,
-                    "message": "Unloaded"
-                }
+                data = {"code": 200, "message": "Unloaded"}
             else:
-                data = {
-                    "code": 500,
-                    "message": "No error encountered, but no validation."
-                }
+                data = {"code": 500, "message": "No error encountered, but no validation."}
         return web.json_response(data, status=data["code"], reason=data["message"])
 
     @login_required
@@ -332,41 +339,23 @@ class WebServer:
         if data < 5:
             return web.json_response(status=403)
         if request.method != "POST":
-            data = {
-                "code": 405,
-                "message": "Invalid method"
-            }
+            data = {"code": 405, "message": "Invalid method"}
             return web.json_response(data, status=data["code"], reason=data["message"])
         cog = await request.json()
-        cog = cog['cog']
+        cog = cog["cog"]
         try:
             success = await load_cog(self.bot, cog)
         except LocationError as e:
-            data = {
-                "code": 400,
-                "message": str(e)
-            }
+            data = {"code": 400, "message": str(e)}
         except LoadedError as e:
-            data = {
-                "code": 409,
-                "message": str(e)
-            }
+            data = {"code": 409, "message": str(e)}
         except LoadingError as e:
-            data = {
-                "code": 500,
-                "message": str(e)
-            }
+            data = {"code": 500, "message": str(e)}
         else:
             if success:
-                data = {
-                    "code": 200,
-                    "message": "Loaded"
-                }
+                data = {"code": 200, "message": "Loaded"}
             else:
-                data = {
-                    "code": 500,
-                    "message": "No error encountered, but no validation."
-                }
+                data = {"code": 500, "message": "No error encountered, but no validation."}
         return web.json_response(data, status=data["code"], reason=data["message"])
 
     @login_required
@@ -377,7 +366,9 @@ class WebServer:
             data -= 10
         if data < 5:
             allowed = False
-        response = aiohttp_jinja2.render_template("cog_pages/core/load.html", request, {"can": allowed})
+        response = aiohttp_jinja2.render_template(
+            "cog_pages/core/load.html", request, {"can": allowed}
+        )
         return response
 
     @login_required
@@ -388,7 +379,9 @@ class WebServer:
             data -= 10
         if data < 5:
             allowed = False
-        response = aiohttp_jinja2.render_template("cog_pages/core/unload.html", request, {"can": allowed})
+        response = aiohttp_jinja2.render_template(
+            "cog_pages/core/unload.html", request, {"can": allowed}
+        )
         return response
 
     @login_required
@@ -399,7 +392,9 @@ class WebServer:
             data -= 10
         if data < 5:
             allowed = False
-        response = aiohttp_jinja2.render_template("cog_pages/core/reload.html", request, {"can": allowed})
+        response = aiohttp_jinja2.render_template(
+            "cog_pages/core/reload.html", request, {"can": allowed}
+        )
         return response
 
     @login_required
@@ -416,10 +411,7 @@ class WebServer:
         if data < 5:
             return web.json_response(status=403)
         loaded, unloaded = await get_cogs(self.bot)
-        data = {
-            "l": loaded,
-            "u": unloaded
-        }
+        data = {"l": loaded, "u": unloaded}
         return web.json_response(data)
 
     @login_required
@@ -430,7 +422,9 @@ class WebServer:
             data -= 10
         if data < 5:
             allowed = False
-        response = aiohttp_jinja2.render_template("cog_pages/cogmanager/cogs.html", request, {"can": allowed})
+        response = aiohttp_jinja2.render_template(
+            "cog_pages/cogmanager/cogs.html", request, {"can": allowed}
+        )
         return response
 
     @login_required
@@ -441,11 +435,7 @@ class WebServer:
         if data < 5:
             return web.json_response(status=403)
         install, core, cogs = await get_paths(self.bot)
-        data = {
-            "i": install,
-            "core": core,
-            "cogs": cogs
-        }
+        data = {"i": install, "core": core, "cogs": cogs}
         return web.json_response(data)
 
     @login_required
@@ -456,7 +446,9 @@ class WebServer:
             data -= 10
         if data < 5:
             allowed = False
-        response = aiohttp_jinja2.render_template("cog_pages/cogmanager/paths.html", request, {"can": allowed})
+        response = aiohttp_jinja2.render_template(
+            "cog_pages/cogmanager/paths.html", request, {"can": allowed}
+        )
         return response
 
     @login_required
@@ -467,17 +459,13 @@ class WebServer:
         if data < 5:
             return web.json_response(status=403)
         path = await request.json()
-        path = path['path']
+        path = path["path"]
         try:
             await add_path(self.bot, path)
         except ValueError:
-            data = {
-                "code": 400
-            }
+            data = {"code": 400}
         else:
-            data = {
-                "code": 200
-            }
+            data = {"code": 200}
         return web.json_response(data)
 
     @login_required
@@ -488,7 +476,9 @@ class WebServer:
             data -= 10
         if data < 5:
             allowed = False
-        response = aiohttp_jinja2.render_template("cog_pages/cogmanager/add_path.html", request, {"can": allowed})
+        response = aiohttp_jinja2.render_template(
+            "cog_pages/cogmanager/add_path.html", request, {"can": allowed}
+        )
         return response
 
     @login_required
@@ -509,20 +499,12 @@ class WebServer:
         try:
             success = await announce(self.bot, message)
         except NotLoadedError:
-            data = {
-                "success": False,
-                "loaded": False
-            }
+            data = {"success": False, "loaded": False}
         else:
             if success:
-                data = {
-                    "success": True
-                }
+                data = {"success": True}
             else:
-                data = {
-                    "success": False,
-                    "loaded": True
-                }
+                data = {"success": False, "loaded": True}
         return web.json_response(data)
 
     @login_required
@@ -533,7 +515,9 @@ class WebServer:
             data -= 10
         if data < 5:
             allowed = False
-        response = aiohttp_jinja2.render_template("cog_pages/admin/announce.html", request, {"can": allowed})
+        response = aiohttp_jinja2.render_template(
+            "cog_pages/admin/announce.html", request, {"can": allowed}
+        )
         return response
 
     @login_required
@@ -546,30 +530,14 @@ class WebServer:
         try:
             locked = await serverlock(self.bot)
         except NotLoadedError:
-            data = {
-                "success": False,
-                "loaded": False,
-                "locked": False
-            }
+            data = {"success": False, "loaded": False, "locked": False}
         except:
-            data = {
-                "success": False,
-                "loaded": True,
-                "locked": False
-            }
+            data = {"success": False, "loaded": True, "locked": False}
         else:
             if locked:
-                data = {
-                    "success": True,
-                    "locked": True,
-                    "loaded": True
-                }
+                data = {"success": True, "locked": True, "loaded": True}
             else:
-                data = {
-                    "success": True,
-                    "locked": False,
-                    "loaded": True
-                }
+                data = {"success": True, "locked": False, "loaded": True}
         return web.json_response(data)
 
     @login_required
@@ -580,7 +548,9 @@ class WebServer:
             data -= 10
         if data < 5:
             allowed = False
-        response = aiohttp_jinja2.render_template("cog_pages/admin/serverlock.html", request, {"can": allowed})
+        response = aiohttp_jinja2.render_template(
+            "cog_pages/admin/serverlock.html", request, {"can": allowed}
+        )
         return response
 
     @login_required
@@ -606,18 +576,12 @@ class WebServer:
         try:
             ignored = await unignore(self.bot, mtype, specifier, identifier)
         except Exception as e:
-            data = {
-                "message": str(e)
-            }
+            data = {"message": str(e)}
         else:
             if ignored:
-                data = {
-                    "message": "Now unignored."
-                }
+                data = {"message": "Now unignored."}
             else:
-                data = {
-                    "message": f"This {mtype} was already unignored."
-                }
+                data = {"message": f"This {mtype} was already unignored."}
         return web.json_response(data)
 
     @login_required
@@ -637,18 +601,12 @@ class WebServer:
         try:
             ignored = await ignore(self.bot, mtype, specifier, identifier)
         except Exception as e:
-            data = {
-                "message": str(e)
-            }
+            data = {"message": str(e)}
         else:
             if ignored:
-                data = {
-                    "message": "Now ignored."
-                }
+                data = {"message": "Now ignored."}
             else:
-                data = {
-                    "message": f"This {mtype} was already ignored."
-                }
+                data = {"message": f"This {mtype} was already ignored."}
         return web.json_response(data)
 
     @login_required
@@ -659,7 +617,9 @@ class WebServer:
             data -= 10
         if data < 3:
             allowed = False
-        response = aiohttp_jinja2.render_template("cog_pages/mod/unignore.html", request, {"can": allowed})
+        response = aiohttp_jinja2.render_template(
+            "cog_pages/mod/unignore.html", request, {"can": allowed}
+        )
         return response
 
     @login_required
@@ -670,7 +630,9 @@ class WebServer:
             data -= 10
         if data < 3:
             allowed = False
-        response = aiohttp_jinja2.render_template("cog_pages/mod/ignore.html", request, {"can": allowed})
+        response = aiohttp_jinja2.render_template(
+            "cog_pages/mod/ignore.html", request, {"can": allowed}
+        )
         return response
 
     @login_required
@@ -679,7 +641,38 @@ class WebServer:
         response = aiohttp_jinja2.render_template("cog_pages/mod.html", request, context)
         return response
 
-    async def _credits(self, request):
+    @login_required
+    async def test_widget(self, request):
+        widgets = await self.cog.conf.testwidgets()
+        try:
+            info = await self.cog.bot.db.custom_info()
+        except AttributeError:
+            info = ""
+        if not info:
+            info = ""
+        name = self.cog.bot.user.name
+        response = aiohttp_jinja2.render_template(
+            "widgettest.html", request, {"widgets": widgets, "info": info, "name": name}
+        )
+        return response
+
+    @not_login_required
+    async def links(self, request):
+        try:
+            permissions = await self.cog.bot.db.invite_perm()
+        except AttributeError:
+            permissions = 0
+        url = f"https://discordapp.com/api/oauth2/authorize?client_id={self.cog.bot.user.id}&permissions={permissions}&scope=bot"
+        support = await self.cog.conf.support()
+        response = aiohttp_jinja2.render_template(
+            "links.html",
+            request,
+            {"invite": url, "support": support, "name": self.cog.bot.user.name},
+        )
+        return response
+
+    @staticmethod
+    async def _credits(request):
         response = aiohttp_jinja2.render_template("credits.html", request, {})
         return response
 
@@ -695,10 +688,10 @@ class WebServer:
             if ex.status != 404:
                 raise
             message = ex.reason
-        current_path = self.path / "templates/404.html"
-        file = open(str(current_path), 'r')
-        html = file.read()
-        return web.Response(text=html, content_type="text/html")
+        response = aiohttp_jinja2.render_template(
+            "404.html", request, {"name": self.cog.bot.user.name}
+        )
+        return response
 
     async def make_webserver(self, path):
         self.path = path
@@ -711,9 +704,10 @@ class WebServer:
         self.app.router.add_get("/cogs", self.cogs)
         self.app.router.add_get("/errors/action", self.errors_action)
         self.app.router.add_get("/login", self.login)
-        self.app.router.add_post("/login/action", self.login_action)
         self.app.router.add_get("/useCode", self.use_code)
         self.app.router.add_get("/monitor", self.monitor_time)
+        self.app.router.add_get("/widgettest", self.test_widget)
+        self.app.router.add_get("/links", self.links)
 
         # Errors
         self.app.router.add_get("/errors", self.errors)
@@ -741,7 +735,9 @@ class WebServer:
         self.app.router.add_get("/cogs/admin/announce", self.cogs_admin_announce)
         self.app.router.add_post("/cogs/admin/announce/action", self.cogs_admin_announce_action)
         self.app.router.add_get("/cogs/admin/serverlock", self.cogs_admin_serverlock)
-        self.app.router.add_post("/cogs/admin/serverlock/action", self.cogs_admin_serverlock_action)
+        self.app.router.add_post(
+            "/cogs/admin/serverlock/action", self.cogs_admin_serverlock_action
+        )
 
         # Cog Manager
         self.app.router.add_get("/cogs/cogmanager", self.cogs_cogmanager)
@@ -750,13 +746,16 @@ class WebServer:
         self.app.router.add_get("/cogs/cogmanager/paths", self.cogs_cogmanager_paths)
         self.app.router.add_get("/cogs/cogmanager/paths/action", self.cogs_cogmanager_paths_action)
         self.app.router.add_get("/cogs/cogmanager/addpath", self.cogs_cogmanager_add_path)
-        self.app.router.add_post("/cogs/cogmanager/addpath/action", self.cogs_cogmanager_add_path_action)
+        self.app.router.add_post(
+            "/cogs/cogmanager/addpath/action", self.cogs_cogmanager_add_path_action
+        )
 
         # Static
 
-        self.app['static_root_url'] = str(self.path / "static")
-        aiohttp_jinja2.setup(self.app,
-            loader=jinja2.FileSystemLoader(str(self.path / "templates")))
+        self.app["static_root_url"] = str(self.path / "static")
+        aiohttp_jinja2.setup(
+            self.app, loader=jinja2.FileSystemLoader(str(self.path / "templates"))
+        )
         self.runner = web.AppRunner(self.app)
         await self.runner.setup()
         self.handler = self.app.make_handler()
