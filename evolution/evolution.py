@@ -1,4 +1,4 @@
-from redbot.core import commands, Config, bank
+from redbot.core import commands, Config, bank, checks
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 import copy
 import asyncio
@@ -38,6 +38,9 @@ class Evolution(commands.Cog):
         self.money_task = self.bot.loop.create_task(self.bg_task())
         self.gain_task = self.bot.loop.create_task(self.gain_bg_task())
 
+    def cog_unload(self):
+        self.__unload()
+
     def __unload(self):
         self.money_task.cancel()
         self.gain_task.cancel()
@@ -45,66 +48,70 @@ class Evolution(commands.Cog):
     async def gain_bg_task(self):
         await self.bot.wait_until_ready()
         while True:
-            seen = []
-            for guild in self.bot.guilds:
-                for member in guild.members:
-                    if member.id in seen:
-                        continue
-                    seen.append(member.id)
-                    animals = await self.conf.user(member).animals()
-                    animal = await self.conf.user(member).animal()
-                    if animal == "":
-                        continue
-                    prev = int(animals.get("1", 0))
-                    if prev < 6:
-                        animals["1"] = prev + 1
-                        await self.conf.user(member).animals.set(animals)
+            users = await self.conf.all_users()
+            for user, data in users.items():
+                animals = data["animals"]
+                animal = data["animal"]
+                if animal == "":
+                    continue
+                prev = int(animals.get("1", 0))
+                if prev < 6:
+                    animals["1"] = prev + 1
+                await asyncio.sleep(0.1)
+                try:
+                    user = await self.bot.get_user_info(user)
+                except AttributeError:
+                    user = await self.bot.fetch_user(user)
+                if user:
+                    await self.conf.user(user).animals.set(animals)
             await asyncio.sleep(600)
 
     async def bg_task(self):
         await self.bot.wait_until_ready()
         while True:
-            seen = []
-            for guild in self.bot.guilds:
-                for member in guild.members:
-                    if member.id in seen:
-                        continue
-                    seen.append(member.id)
-                    animals = await self.conf.user(member).animals()
-                    animal = await self.conf.user(member).animal()
-                    multiplier = await self.conf.user(member).multiplier()
-                    if animal == "":
-                        continue
-                    all_gaining = 0
-                    for key, value in animals.items():
-                        for x in range(0, value):
-                            chance = random.randint(1, 100)
-                            try:
-                                chances = list(LEVELS[int(key)].keys())
-                            except:
-                                chances = [100]
-                            chosen = min([c for c in chances if chance <= c])
-                            try:
-                                gaining = LEVELS[int(key)][chosen]
-                            except:
-                                gaining = 1000
-                            gaining *= multiplier
-                            all_gaining += gaining
-                    await bank.deposit_credits(member, math.ceil(all_gaining))
+            users = await self.conf.all_users()
+            for user, data in users.items():
+                animal = data["animal"]
+                if animal == "":
+                    continue
+                multiplier = data["multiplier"]
+                animals = data["animals"]
+                all_gaining = 0
+                for key, value in animals.items():
+                    for x in range(0, value):
+                        chance = random.randint(1, 100)
+                        try:
+                            chances = list(LEVELS[int(key)].keys())
+                        except:
+                            chances = [100]
+                        chosen = min([c for c in chances if chance <= c])
+                        try:
+                            gaining = LEVELS[int(key)][chosen]
+                        except:
+                            gaining = 1000
+                        gaining *= multiplier
+                        all_gaining += gaining
+                try:
+                    user = await self.bot.get_user_info(user)
+                except AttributeError:
+                    user = await self.bot.fetch_user(user)
+                if user:
+                    await bank.deposit_credits(user, math.ceil(all_gaining))
+                await asyncio.sleep(0.1)
             await asyncio.sleep(60)
 
     def get_level_tax(self, level):
         if level == 1:
             return 0
-        return (self.get_level_tax(level - 1) * 2) + 100
+        return (self.get_level_tax(level - 1) * 2) + 200
 
     def get_total_price(self, level, bought, amount):
         total = 0
         for x in range(amount):
-            normal = level * 300
+            normal = level * 800
             level_tax = self.get_level_tax(level)
-            tax = bought * 100
-            total += normal + level_tax + tax + (x * 100)
+            tax = bought * 300
+            total += normal + level_tax + tax + (x * 300)
         return total
 
     async def shop_control_callback(self, ctx, pages, controls, message, page, timeout, emoji):
@@ -201,6 +208,7 @@ class Evolution(commands.Cog):
             f"You bought {amount} Level {str(level)} {animal}{'s' if amount != 1 else ''}"
         )
 
+    @checks.bot_has_permissions(embed_links=True)
     @evolution.command()
     async def shop(self, ctx):
         """View them animals in a nice little buying menu"""
@@ -232,14 +240,15 @@ class Evolution(commands.Cog):
         controls["\N{MONEY BAG}"] = self.shop_control_callback
         await menu(ctx, embed_list, controls)
 
+    @checks.bot_has_permissions(embed_links=True)
     @evolution.command()
-    async def backyard(self, ctx, menu: bool=False):
+    async def backyard(self, ctx, use_menu: bool = False):
         """Where ya animals live!  Pass 1 or true to put it in a menu."""
         animal = await self.conf.user(ctx.author).animal()
         if animal in ["", "P"]:
             return await ctx.send("Finish starting your evolution first")
         animals = await self.conf.user(ctx.author).animals()
-        if menu:
+        if use_menu:
             embed_list = []
             for level, amount in animals.items():
                 if amount == 0:
@@ -260,7 +269,7 @@ class Evolution(commands.Cog):
                     continue
                 embed.add_field(
                     name=f"Level {str(level)} {animal}",
-                    value=f"You have {str(amount)} Level {level} {animal}{'s' if amount != 1 else ''} \N{ZERO WIDTH SPACE} \N{ZERO WIDTH SPACE}"
+                    value=f"You have {str(amount)} Level {level} {animal}{'s' if amount != 1 else ''} \N{ZERO WIDTH SPACE} \N{ZERO WIDTH SPACE}",
                 )
             await ctx.send(embed=embed)
 
@@ -308,7 +317,7 @@ class Evolution(commands.Cog):
                 f"**To:** {ctx.author.display_name}\n"
                 f"**Concerning:** Animal experiment #{str(math.ceil(((multiplier - 1) * 5) + 1))}\n"
                 f"**Subject:** Animal experiment concluded.\n\n"
-                f"Congratulations, {ctx.author.display_name}!  You have successfully combined enough chickens to reach a Level 26 Animal!  This means that it is time to recreate universe!  This will give you a boost of 50,000 credits, remove all of your animals, and give you an extra 0.2% income rate for the next universe from all income.  Congratulations!\n\n"
+                f"Congratulations, {ctx.author.display_name}!  You have successfully combined enough animals to reach a Level 26 Animal!  This means that it is time to recreate universe!  This will give you a boost of 50,000 credits, remove all of your animals, and give you an extra 0.2% income rate for the next universe from all income.  Congratulations!\n\n"
                 f"From, The Head {animal.title()}"
             )
             await ctx.send(new)
