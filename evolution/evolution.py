@@ -1,3 +1,5 @@
+import contextlib
+
 from redbot.core import commands, Config, bank, checks
 from redbot.core.utils.menus import DEFAULT_CONTROLS, menu
 import copy
@@ -5,7 +7,6 @@ import asyncio
 import random
 import discord
 import math
-import traceback
 
 ANIMALS = ["chicken", "dog", "cat", "shark", "tiger", "penguin", "pupper", "dragon"]
 
@@ -27,6 +28,17 @@ LEVELS = {
     15: {100: 1000},
 }
 
+IMAGES = {
+    "shark": "https://www.bostonmagazine.com/wp-content/uploads/sites/2/2019/05/Great-white-shark.jpg",
+    "chicken": "https://i1.wp.com/thechickhatchery.com/wp-content/uploads/2018/01/RI-White.jpg?fit=371%2C363&ssl=1",
+    "penguin": "https://cdn.britannica.com/77/81277-050-2A6A35B2/Adelie-penguin.jpg",
+    "dragon": "https://images-na.ssl-images-amazon.com/images/I/61NTUxEnn0L._SL1032_.jpg",
+    "tiger": "https://c402277.ssl.cf1.rackcdn.com/photos/18134/images/hero_small/Medium_WW226365.jpg?1574452099",
+    "cat": "https://icatcare.org/app/uploads/2018/07/Thinking-of-getting-a-cat.png",
+    "dog": "https://d17fnq9dkz9hgj.cloudfront.net/breed-uploads/2018/09/dog-landing-hero-lg.jpg?bust=1536935129&width=1080",
+    "pupper": "https://i.ytimg.com/vi/MPV2METPeJU/maxresdefault.jpg"
+}
+
 
 class Evolution(commands.Cog):
     """EVOLVE THOSE ANIMALS!!!!!!!!!!!"""
@@ -37,20 +49,39 @@ class Evolution(commands.Cog):
         self.conf = Config.get_conf(self, identifier=473541068378341376)
         default_user = {"animal": "", "animals": {}, "multiplier": 1.0, "bought": {}}
         self.conf.register_user(**default_user)
-        self.task = self.bot.loop.create_task(self.bg_task())
+        self.money_task = self.bot.loop.create_task(self.bg_task())
+        self.gain_task = self.bot.loop.create_task(self.gain_bg_task())
 
     def cog_unload(self):
         self.__unload()
 
     def __unload(self):
-        self.task.cancel()
+        self.money_task.cancel()
+        self.gain_task.cancel()
+
+    async def gain_bg_task(self):
+        await self.bot.wait_until_ready()
+        while True:
+            users = [user for user in self.bot.users if not user.bot]
+            for u in users:
+                async with self.lock:
+                    animals = await self.conf.user(u).animals()
+                    animal = await self.conf.user(u).animal()
+                    if animal == "":
+                        continue
+                    prev = int(animals.get("1", 0))
+                    if prev < 6:
+                        animals["1"] = prev + 1
+                    await self.conf.user(u).animals.set(animals)
+                await asyncio.sleep(0.2)
+            await asyncio.sleep(600)
 
     async def bg_task(self):
         await self.bot.wait_until_ready()
         while True:
             async with self.lock:
                 users = await self.conf.all_users()
-            for userid, data in users.items():
+            for user, data in users.items():
                 animal = data["animal"]
                 if animal == "":
                     continue
@@ -70,12 +101,14 @@ class Evolution(commands.Cog):
                         except:
                             gaining = 1000
                         gaining *= multiplier
-                        all_gaining += gaining
-                user = self.bot.get_user(userid)
-                if user is None:
-                    user = await self.bot.fetch_user(userid) # Prepare to be rate limited :aha:
+                        all_gaining += gaining * 0.25
+                try:
+                    user = await self.bot.get_user_info(user)
+                except AttributeError:
+                    user = await self.bot.fetch_user(user)
                 if user:
-                    await bank.deposit_credits(user, math.ceil(all_gaining))
+                    with contextlib.suppress(bank.errors.BalanceTooHigh):
+                        await bank.deposit_credits(user, math.ceil(all_gaining))
                 await asyncio.sleep(0.1)
             await asyncio.sleep(60)
 
@@ -102,33 +135,6 @@ class Evolution(commands.Cog):
     async def evolution(self, ctx):
         """EVOLVE THE GREATEST ANIMALS OF ALL TIME!!!!"""
         pass
-
-    @checks.is_owner()
-    @evolution.command(aliases=["cd"])
-    async def checkdelivery(self, ctx):
-        """Check the delivery status of your money.
-
-        In reality terms, check to see if the background tasks have run into an issue"""
-        message = "Task is currently "
-        cancelled = self.task.cancelled()
-        if cancelled:
-            message += "canceled."
-        else:
-            done = self.task.done()
-            if done:
-                message += "done."
-            else:
-                message += "running."
-        try:
-            e = self.task.exception()
-        except asyncio.exceptions.InvalidStateError:
-            message += "  No error has been encountered."
-        else:
-            ex = traceback.format_exception(type(e), e, e.__traceback__)
-            message += f"  An error has been encountered.  Please report the following to Neuro Assassin on the help server. ```py\n{''.join(ex)}```"
-        if len(message) > 2000:
-            message = message[:1994] + "...```"
-        await ctx.send(message)
 
     @evolution.command()
     async def start(self, ctx):
@@ -159,32 +165,28 @@ class Evolution(commands.Cog):
             async with self.lock:
                 await self.conf.user(ctx.author).animal.set("")
             return await ctx.send("Command timed out.")
-        async with self.lock:
-            async with self.conf.user(ctx.author).all() as data:
-                data["animal"] = message.content.lower()
-                data["animals"] = {1: 1}
+        await self.conf.user(ctx.author).animal.set(message.content.lower())
+        await self.conf.user(ctx.author).animals.set({1: 1})
         await ctx.send(
             f"Your animal has been set to {message.content}.  You have been granted one to start."
         )
-
     @evolution.command()
     async def buy(self, ctx, level: int, amount: int = 1):
         """Buy those animals to get more economy credits"""
+        if self.lock.locked():
+            await ctx.send("Hold on just one second, a delivery is going out at the moment... "
+                           "This shouldn't be any longer than a minute.")
         async with self.lock:
-            data = await self.conf.user(ctx.author).all()
-        animals = data["animals"]
-        bought = data["bought"]
-        animal = data["animal"]
-
+            animals = await self.conf.user(ctx.author).animals()
+            bought = await self.conf.user(ctx.author).bought()
+            animal = await self.conf.user(ctx.author).animal()
         if animal in ["", "P"]:
             return await ctx.send("Finish starting your evolution first")
-
         highest = max(list(map(int, animals.keys())))
         prev = int(animals.get(str(level), 0))
         balance = await bank.get_balance(ctx.author)
         current_bought = int(bought.get(str(level), 0))
         price = self.get_total_price(level, current_bought, amount)
-
         if balance < price:
             return await ctx.send("You don't have enough credits!")
         if prev >= 6:
@@ -197,7 +199,6 @@ class Evolution(commands.Cog):
             return await ctx.send("Ya cant buy a negative amount!")
         if (level > int(highest) - 3) and (level > 1):
             return await ctx.send("Please get higher animals to buy higher levels of them.")
-
         m = await ctx.send(
             f"Are you sure you want to buy {amount} Level {str(level)} {animal}{'s' if amount != 1 else ''}?  This will cost you {str(price)}."
         )
@@ -215,17 +216,13 @@ class Evolution(commands.Cog):
             reaction, user = await self.bot.wait_for("reaction_add", check=check, timeout=60.0)
         except asyncio.TimeoutError:
             return await ctx.send(f"You left the {animal} shop without buying anything.")
-
         if str(reaction.emoji) == "\N{CROSS MARK}":
             return await ctx.send(f"You left the {animal} shop without buying anything.")
         animals[str(level)] = prev + amount
         bought[level] = current_bought + 1
-
         async with self.lock:
-            async with self.conf.user(ctx.author).all() as data:
-                data["animals"] = animals
-                data["bought"] = bought
-
+            await self.conf.user(ctx.author).animals.set(animals)
+            await self.conf.user(ctx.author).bought.set(bought)
         await bank.withdraw_credits(ctx.author, price)
         await ctx.send(
             f"You bought {amount} Level {str(level)} {animal}{'s' if amount != 1 else ''}"
@@ -235,15 +232,15 @@ class Evolution(commands.Cog):
     @evolution.command()
     async def shop(self, ctx):
         """View them animals in a nice little buying menu"""
+        if self.lock.locked():
+	        await ctx.send("Hold on just one second, a delivery is going out at the moment... "	
+	                        "This shouldn't be any longer than a minute.")
         async with self.lock:
-            data = await self.conf.user(ctx.author).all()
-        animals = data["animals"]
-        bought = data["bought"]
-        animal = data["animal"]
-
+            animal = await self.conf.user(ctx.author).animal()
+            animals = await self.conf.user(ctx.author).animals()
+            bought = await self.conf.user(ctx.author).bought()
         if animal in ["", "P"]:
             return await ctx.send("Finish starting your evolution first")
-
         embed_list = []
         for x in list(animals.keys()):
             embed = discord.Embed(
@@ -271,14 +268,14 @@ class Evolution(commands.Cog):
     @evolution.command()
     async def backyard(self, ctx, use_menu: bool = False):
         """Where ya animals live!  Pass 1 or true to put it in a menu."""
+        if self.lock.locked():
+            await ctx.send("Hold on just one second, a delivery is going out at the moment... "
+                           "This shouldn't be any longer than a minute.")
         async with self.lock:
-            data = await self.conf.user(ctx.author).all()
-        animal = data["animal"]
-        animals = data["animals"]
-
+            animal = await self.conf.user(ctx.author).animal()
+            animals = await self.conf.user(ctx.author).animals()
         if animal in ["", "P"]:
             return await ctx.send("Finish starting your evolution first")
-
         if use_menu:
             embed_list = []
             for level, amount in animals.items():
@@ -289,12 +286,14 @@ class Evolution(commands.Cog):
                     description=f"You have {str(amount)} Level {level} {animal}{'s' if amount != 1 else ''}",
                     color=0xD2B48C,
                 )
+                embed.set_thumbnail(url=IMAGES[animal])
                 embed_list.append(embed)
             await menu(ctx, embed_list, DEFAULT_CONTROLS)
         else:
             embed = discord.Embed(
                 title=f"The amount of {animal}s you have in your backyard.", color=0xD2B48C
             )
+            embed.set_thumbnail(url=IMAGES[animal])
             for level, amount in animals.items():
                 if amount == 0:
                     continue
@@ -311,60 +310,55 @@ class Evolution(commands.Cog):
             return await ctx.send("Too low!")
         if amount > 3:
             return await ctx.send("Too high!")
+        if self.lock.locked():
+            await ctx.send("Hold on just one second, a delivery is going out at the moment... "
+                           "This shouldn't be any longer than a minute.")
         async with self.lock:
-            data = await self.conf.user(ctx.author).all()
-        animal = data["animal"]
-        animals = data["animals"]
-
+            animal = await self.conf.user(ctx.author).animal()
+            animals = await self.conf.user(ctx.author).animals()
         if animal in ["", "P"]:
             return await ctx.send("Finish starting your evolution first")
-
         current = animals.get(str(level), 0)
         highest = max(list(map(int, animals.keys())))
-        nextlevel = animals.get(str(level + 1), 0)
-
         if current < (amount * 2):
             return await ctx.send("You don't have enough animals at that level.")
-
-        if nextlevel + amount > 6:
-            return await ctx.send("You'd have to many of those!  Evolve some of them instead!")
-
+        counter = 0
         found_new = False
         recreate = False
-        currentlevelstr = str(level)
-        nextlevelstr = str(level + 1)
-
-        animals[currentlevelstr] -= 2 * amount
-        prev = animals.get(nextlevelstr, 0)
-        if highest == level:
-            found_new = True
-        animals[nextlevelstr] = animals.get(nextlevelstr, 0) + amount
-        if level + 1 == 26:
-            recreate = True
-
+        for x in range(amount):
+            animals[str(level)] -= 2
+            prev = animals.get(str(level + 1), 0)
+            if prev == 6:
+                continue
+            if highest == level:
+                found_new = True
+            animals[str(level + 1)] = animals.get(str(level + 1), 0) + 1
+            async with self.lock:
+                await self.conf.user(ctx.author).animals.set(animals)
+            counter += 2
+            if level + 1 == 26:
+                recreate = True
         if found_new:
             sending = "\nCONGRATULATIONS!  You have found a new animal!"
         else:
             sending = ""
         await ctx.send(
-            f"Successfully converted {str(amount * 2)} Level {currentlevelstr} {animal}s into {str(amount)} Level {nextlevelstr} {animal}{'s' if amount != 1 else ''}{sending}"
+            f"Successfully converted {str(counter)} Level {str(level)} {animal}s into {int(counter / 2)} Level {str(level+1)} {animal}{'s' if amount != 1 else ''}{sending}"
         )
         if recreate:
             async with self.lock:
-                async with self.conf.user(ctx.author).all() as data:
-                    multiplier = data["multiplier"]
-                    data["animals"] = {1: 1}
-                    data["multiplier"] = multiplier + 0.2
+                multiplier = await self.conf.user(ctx.author).multiplier()
             new = (
                 "**Report:**\n"
                 f"**To:** {ctx.author.display_name}\n"
                 f"**Concerning:** Animal experiment #{str(math.ceil(((multiplier - 1) * 5) + 1))}\n"
                 f"**Subject:** Animal experiment concluded.\n\n"
-                f"Congratulations, {ctx.author.display_name}!  You have successfully combined enough animals to reach a Level 26 Animal!  This means that it is time to recreate universe!  This will give you a boost of 50,000 credits, remove all of your animals, and give you an extra 0.2% income rate for the next universe from all income.  Congratulations!\n\n"
+                f"Congratulations, {ctx.author.display_name}!  You have successfully combined enough animals to reach a Level 26 Animal!  This means that it is time to recreate universe!  This will give you a boost of 500,000,000 credits, remove all of your animals, and give you an extra 0.2% income rate for the next universe from all income.  Congratulations!\n\n"
                 f"From, The Head {animal.title()}"
             )
             await ctx.send(new)
-            await bank.deposit_credits(ctx.author, 50000)
-        else:
+            with contextlib.suppress(bank.errors.BalanceTooHigh):
+                await bank.deposit_credits(ctx.author, 5000000)
             async with self.lock:
-                await self.conf.user(ctx.author).animals.set(animals)
+                await self.conf.user(ctx.author).animals.set({1: 1})
+                await self.conf.user(ctx.author).multiplier.set(multiplier + 0.2)
